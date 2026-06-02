@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Strategic Research: Advanced RAG — Thinktecture AG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Hanken+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --coral:#FF584F;
+    --coral-deep:#E0463E;
+    --coral-soft:#FFE9E6;
+    --ink:#17120F;
+    --ink-2:#3A322D;
+    --muted:#7A716A;
+    --line:#E7E0D8;
+    --paper:#FBF9F6;
+    --paper-2:#F4F0EA;
+    --white:#FFFFFF;
+    /* system series colors */
+    --c-std:#4B5563;
+    --c-light:var(--coral);
+    --c-grg:#C99030;
+    --c-grl:#2F8E8E;
+    --maxw:1080px;
+    --serif:"Fraunces",Georgia,serif;
+    --sans:"Hanken Grotesk",system-ui,sans-serif;
+    --mono:"JetBrains Mono",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--sans);
+    color:var(--ink);
+    background:var(--paper);
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+    font-size:17px;
+  }
+  ::selection{background:var(--coral);color:#fff}
+
+  /* progress bar */
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--coral);z-index:200;transition:width .1s linear}
+
+  /* top nav */
+  header.bar{
+    position:sticky;top:0;z-index:100;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px clamp(20px,5vw,56px);
+    background:rgba(251,249,246,.82);
+    backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--line);
+  }
+  .wordmark{font-family:var(--sans);font-weight:700;line-height:.82;letter-spacing:-.02em;font-size:20px;color:var(--coral)}
+  .wordmark span{display:block}
+  nav.toc{display:flex;gap:26px;font-size:13.5px;font-weight:500}
+  nav.toc a{color:var(--ink-2);text-decoration:none;position:relative;padding-bottom:2px}
+  nav.toc a:hover{color:var(--coral)}
+  nav.toc a::after{content:"";position:absolute;left:0;bottom:-3px;height:2px;width:0;background:var(--coral);transition:width .25s}
+  nav.toc a:hover::after{width:100%}
+  nav.toc a.active{color:var(--coral)}
+  nav.toc a.active::after{width:100%}
+  @media(max-width:780px){nav.toc{display:none}}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 clamp(20px,5vw,56px)}
+
+  /* HERO */
+  .hero{position:relative;overflow:hidden;padding:clamp(60px,11vw,140px) 0 clamp(48px,7vw,90px)}
+  .hero::before{
+    content:"";position:absolute;inset:0;
+    background:
+      radial-gradient(120% 90% at 88% -10%,rgba(255,68,56,.10),transparent 55%),
+      radial-gradient(80% 60% at -5% 110%,rgba(47,142,142,.06),transparent 60%);
+    z-index:-1;
+  }
+  .eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--coral);font-weight:600;margin-bottom:26px}
+  h1.title{font-family:var(--serif);font-weight:600;font-size:clamp(44px,8.5vw,104px);line-height:.96;letter-spacing:-.025em;max-width:14ch}
+  h1.title em{font-style:italic;color:var(--coral)}
+  .lede{margin-top:30px;max-width:60ch;font-size:clamp(18px,2.2vw,22px);color:var(--ink-2);font-weight:400}
+  .meta-row{display:flex;flex-wrap:wrap;gap:40px;margin-top:48px;padding-top:28px;border-top:1px solid var(--line)}
+  .meta-row .m{font-size:14px}
+  .meta-row .m .k{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px}
+  .meta-row .m .v{font-weight:600;color:var(--ink)}
+
+  /* section scaffolding */
+  section.block{padding:clamp(54px,8vw,104px) 0;border-top:1px solid var(--line)}
+  .sec-no{font-family:var(--mono);font-size:13px;color:var(--coral);font-weight:600;letter-spacing:.1em}
+  h2{font-family:var(--serif);font-weight:600;font-size:clamp(30px,4.6vw,52px);line-height:1.02;letter-spacing:-.02em;margin:10px 0 28px}
+  h3{font-family:var(--serif);font-weight:600;font-size:clamp(21px,2.6vw,28px);letter-spacing:-.01em;margin:42px 0 14px;line-height:1.15}
+  h4{font-family:var(--sans);font-weight:700;font-size:16px;letter-spacing:.01em;margin:26px 0 8px;color:var(--ink)}
+  p{margin:0 0 18px;max-width:72ch}
+  p.read{max-width:68ch}
+  strong{font-weight:700;color:var(--ink)}
+  .accent{color:var(--coral-deep);font-weight:600}
+  code,.term{font-family:var(--mono);font-size:.86em;background:var(--paper-2);padding:1px 6px;border-radius:5px;color:var(--ink-2)}
+
+  /* abstract callout */
+  .abstract{background:var(--ink);color:#EFE9E2;border-radius:18px;padding:clamp(32px,5vw,56px);position:relative;overflow:hidden}
+  .abstract::after{content:"";position:absolute;right:-60px;top:-60px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(255,68,56,.35),transparent 70%)}
+  .abstract .lbl{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--coral);margin-bottom:18px}
+  .abstract p{color:#D9D1C8;max-width:74ch}
+  .abstract p:last-child{margin-bottom:0}
+
+  /* system cards */
+  .sys-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin:30px 0 8px}
+  .sys-card{border:1px solid var(--line);border-radius:16px;padding:28px;background:var(--white);transition:transform .3s,box-shadow .3s,border-color .3s}
+  .sys-card:hover{transform:translateY(-4px);box-shadow:0 22px 50px -28px rgba(23,18,15,.35);border-color:transparent}
+  .sys-card .tag{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;padding:4px 10px;border-radius:30px;display:inline-block;margin-bottom:16px}
+  .sys-card h3{margin:0 0 10px;font-size:23px}
+  .sys-card p{font-size:15px;color:var(--ink-2);margin-bottom:0}
+  .t-std{background:#EEF0F2;color:var(--c-std)}
+  .t-light{background:var(--coral-soft);color:var(--coral-deep)}
+  .t-graph{background:#FBF1DD;color:#9a6c12}
+
+  /* pipeline chips */
+  .pipe{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:18px 0 10px}
+  .pipe .step{font-family:var(--mono);font-size:12.5px;background:var(--white);border:1px solid var(--line);border-radius:8px;padding:7px 12px;font-weight:500}
+  .pipe .arr{color:var(--coral);font-weight:700}
+
+  /* tables */
+  .tbl-fig{margin:26px 0}
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--white)}
+  table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:520px}
+  .tbl-cap{display:flex;gap:9px;align-items:baseline;margin:13px 2px 0;font-family:var(--mono);font-size:12.5px;line-height:1.55;color:var(--muted)}
+  .tbl-cap .tnum{flex:none;color:var(--coral);font-weight:600;letter-spacing:.02em}
+  .tbl-cap .tnum::before{content:"";display:inline-block;width:15px;height:2px;background:var(--coral);border-radius:2px;margin-right:9px;vertical-align:middle;position:relative;top:-1px}
+  th,td{padding:13px 18px;text-align:left;border-bottom:1px solid var(--line)}
+  thead th{font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--paper-2)}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:var(--paper)}
+  td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+  td.best{color:var(--coral-deep);font-weight:600}
+  .pmid{font-family:var(--mono);font-size:13px}
+
+  /* chart */
+  .chart-card{background:var(--white);border:1px solid var(--line);border-radius:18px;padding:clamp(24px,4vw,40px);margin:30px 0}
+  .legend{display:flex;flex-wrap:wrap;gap:18px;margin-bottom:30px;font-size:13.5px;font-weight:500}
+  .legend .li{display:flex;align-items:center;gap:8px}
+  .legend .sw{width:13px;height:13px;border-radius:4px;flex:none}
+  .metric-row{margin-bottom:26px}
+  .metric-row:last-child{margin-bottom:0}
+  .metric-row .mlabel{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+  .metric-row .mname{font-weight:600;font-size:15px}
+  .metric-row .mhint{font-size:12px;color:var(--muted)}
+  .bars{display:flex;flex-direction:column;gap:7px}
+  .bar-line{display:grid;grid-template-columns:96px 1fr 52px;align-items:center;gap:12px}
+  .bar-line .bn{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);text-align:right}
+  .bar-track{background:var(--paper-2);border-radius:6px;height:20px;overflow:hidden}
+  .bar-fill{height:100%;width:0;border-radius:6px;transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
+  .bar-line .bv{font-family:var(--mono);font-size:12.5px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+  @media(max-width:560px){.bar-line{grid-template-columns:64px 1fr 44px;gap:8px}}
+
+  /* highlight / finding callout */
+  .finding{border-radius:18px;padding:clamp(28px,4vw,44px);margin:34px 0;background:linear-gradient(135deg,var(--coral),var(--coral-deep));color:#fff;position:relative;overflow:hidden}
+  .finding::before{content:"";position:absolute;right:-40px;bottom:-60px;width:240px;height:240px;border-radius:50%;background:rgba(255,255,255,.12)}
+  .finding .lbl{font-family:var(--mono);font-size:12px;letter-spacing:.2em;text-transform:uppercase;opacity:.85;margin-bottom:14px}
+  .finding h3{color:#fff;margin:0 0 14px;font-size:clamp(22px,3vw,30px)}
+  .finding p{color:rgba(255,255,255,.94);max-width:70ch;margin-bottom:0;position:relative}
+  .finding .stats{display:flex;flex-wrap:wrap;gap:30px;margin-top:24px;position:relative}
+  .finding .st .num{font-family:var(--serif);font-size:38px;font-weight:600;line-height:1}
+  .finding .st .cap{font-size:12.5px;opacity:.85;margin-top:4px;font-family:var(--mono)}
+
+  /* key-takeaway boxes */
+  .kbox{display:grid;grid-template-columns:repeat(4,1fr);gap:20px 24px;margin:28px 0}
+  @media(max-width:860px){.kbox{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:500px){.kbox{grid-template-columns:1fr}}
+  .kbox .k{border-left:3px solid var(--coral);padding:4px 0 4px 18px}
+  .kbox .k .kt{font-weight:700;margin-bottom:6px}
+  .kbox .k p{font-size:14.5px;color:var(--ink-2);margin:0}
+
+  blockquote{border-left:3px solid var(--line);padding:6px 0 6px 22px;margin:24px 0;font-family:var(--serif);font-size:21px;font-style:italic;color:var(--ink-2);max-width:60ch;line-height:1.4}
+
+  /* future work list */
+  ul.fw{list-style:none;margin:20px 0;display:grid;gap:14px}
+  ul.fw li{display:flex;gap:14px;align-items:flex-start;font-size:15.5px;color:var(--ink-2);max-width:74ch}
+  ul.fw li::before{content:"→";color:var(--coral);font-weight:700;flex:none;margin-top:1px}
+  ul.fw li b{color:var(--ink)}
+
+  /* footer */
+  footer{background:var(--ink);color:#CFC7BE;padding:clamp(48px,7vw,80px) 0 40px;margin-top:0}
+  footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:40px}
+  footer .wordmark{font-size:34px}
+  footer .addr{font-size:14px;line-height:1.8}
+  footer .addr a{color:var(--coral);text-decoration:none}
+  footer .fine{width:100%;margin-top:40px;padding-top:24px;border-top:1px solid rgba(255,255,255,.12);font-size:12.5px;color:#8a8178;font-family:var(--mono);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+
+  /* reveal */
+  .reveal{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s ease}
+  .reveal.in{opacity:1;transform:none}
+
+  @media print{
+    header.bar,#progress,.docnav,.docnav-toggle,.docnav-backdrop{display:none}
+    body{background:#fff;font-size:11pt}
+    .sys-card:hover{transform:none;box-shadow:none}
+    .reveal{opacity:1;transform:none}
+    section.block{padding:24px 0}
+  }
+  /* real thinktecture wordmark (themeable via currentColor) */
+  .tt-logo{display:inline-flex;align-items:center;text-decoration:none;line-height:0}
+  .tt-logo svg{display:block;width:auto}
+  .tt-logo--head{color:var(--coral)}
+  .tt-logo--head svg{height:34px}
+  .tt-logo--head:hover{color:var(--coral-deep)}
+  .tt-logo--foot{color:#fff}
+  .tt-logo--foot svg{height:60px}
+  /* system diagrams */
+  .diag-fig{margin:30px 0}
+  .diag-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:16px;background:var(--white);padding:18px 20px}
+  .diag{display:block;width:100%;height:auto;min-width:680px}
+  .diag text{font-family:var(--mono)}
+  .diag .nbox{fill:#fff;stroke:var(--line);stroke-width:1.5}
+  .diag .nbox-accent{fill:var(--coral-soft);stroke:var(--coral);stroke-width:1.6}
+  .diag .nbox-solid{fill:var(--coral)}
+  .diag .nbox-mute{fill:var(--paper-2);stroke:var(--line);stroke-width:1.4;stroke-dasharray:5 4}
+  .diag .lbl{font-size:13.5px;fill:var(--ink);text-anchor:middle;dominant-baseline:middle}
+  .diag .lbl-w{font-size:13.5px;font-weight:600;fill:#fff;text-anchor:middle;dominant-baseline:middle}
+  .diag .lbl-sm{font-size:11.5px;fill:var(--ink-2);text-anchor:middle;dominant-baseline:middle}
+  .diag .glabel{font-size:11px;fill:var(--coral);font-weight:600;letter-spacing:.06em;text-anchor:start}
+  .diag .glabel-c{font-size:11px;fill:var(--coral);font-weight:600;letter-spacing:.04em;text-anchor:middle;dominant-baseline:middle}
+  .diag .lane{font-size:11px;fill:var(--coral);font-weight:700;letter-spacing:.18em;text-anchor:start}
+  .diag .note{font-size:11px;fill:var(--muted);text-anchor:middle;dominant-baseline:middle;font-style:italic}
+  .diag .group{fill:#FBF6F4;stroke:var(--line);stroke-width:1.4;stroke-dasharray:6 6}
+  .diag .edge{fill:none;stroke:#9a9089;stroke-width:1.8}
+  .diag .edge-c{fill:none;stroke:var(--coral);stroke-width:2}
+  .diag .edge-dash{stroke-dasharray:6 5}
+  .diag .divider{stroke:var(--line);stroke-width:1;stroke-dasharray:3 4}
+  .tbl-wrap tr.sub td{color:var(--muted);font-size:13.5px}
+  .tbl-wrap tr.sub td:first-child{padding-left:36px}
+  .tbl-wrap tr.total td{font-weight:600;border-top:2px solid var(--line)}
+  .tbl-wrap tr.subtot td{font-weight:600;color:var(--ink-2)}
+  .chart-card.cmp .bar-line{grid-template-columns:84px 1fr 74px}
+  @media(max-width:560px){.chart-card.cmp .bar-line{grid-template-columns:62px 1fr 60px;gap:8px}}
+  .callout{background:var(--coral-soft);border-left:4px solid var(--coral);border-radius:12px;padding:18px 22px;margin:26px 0;max-width:72ch}
+  .callout .clbl{font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--coral-deep);margin-bottom:7px}
+  .callout p{margin:0;font-size:14.5px;line-height:1.62;color:var(--ink-2)}
+  .callout p strong{color:var(--ink)}
+  /* ---- document outline / TOC ---- */
+  .docnav-toggle{position:fixed;right:18px;bottom:18px;z-index:60;width:48px;height:48px;border-radius:14px;border:1px solid var(--line);background:var(--white);color:var(--ink);box-shadow:0 6px 22px rgba(23,18,15,.14);cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .docnav-toggle:hover{border-color:var(--coral);color:var(--coral)}
+  .docnav-toggle svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+  .docnav-backdrop{position:fixed;inset:0;background:rgba(23,18,15,.30);opacity:0;visibility:hidden;transition:opacity .25s;z-index:55}
+  .docnav-backdrop.show{opacity:1;visibility:visible}
+  .docnav{position:fixed;top:58px;left:0;height:calc(100vh - 58px);width:264px;box-sizing:border-box;background:var(--paper);border-right:1px solid var(--line);padding:22px 14px 44px 26px;overflow-y:auto;z-index:58;transform:translateX(-104%);transition:transform .3s cubic-bezier(.2,.7,.2,1);font-family:var(--sans);overscroll-behavior:contain}
+  .docnav.open{transform:translateX(0);box-shadow:0 0 50px rgba(23,18,15,.10)}
+  .docnav-head{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--coral);font-weight:600;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+  .docnav-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:21px;line-height:1;padding:0 2px}
+  .docnav-close:hover{color:var(--ink)}
+  .docnav a{display:block;text-decoration:none;color:var(--ink-2);padding:5px 11px;border-radius:8px;line-height:1.32;border-left:2px solid transparent;transition:background .15s,color .15s}
+  .docnav a:hover{background:var(--paper-2);color:var(--ink)}
+  .docnav a.lvl-h2{font-weight:600;font-size:13px;color:var(--ink);margin-top:15px;font-family:var(--mono);letter-spacing:.02em}
+  .docnav a.lvl-h2.first{margin-top:0}
+  .docnav a.lvl-h3{font-size:12.5px;margin-left:13px}
+  .docnav a.lvl-h4{font-size:12px;margin-left:27px;color:var(--muted)}
+  .docnav a.active{color:var(--coral-deep);background:var(--coral-soft);border-left-color:var(--coral);font-weight:600}
+  @media(min-width:1640px){
+    .docnav{transform:none;background:transparent;border-right:none}
+    .docnav.open{box-shadow:none}
+    .docnav-toggle,.docnav-backdrop,.docnav-close{display:none}
+  }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<button class="docnav-toggle" id="docnavToggle" aria-label="Inhalt öffnen"><svg viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="14" y2="17"/></svg></button>
+<div class="docnav-backdrop" id="docnavBackdrop"></div>
+<nav class="docnav" id="docnav" aria-label="Inhalt">
+  <div class="docnav-head"><span>Inhalt</span><button class="docnav-close" id="docnavClose" aria-label="Schließen">&times;</button></div>
+  <div id="docnavList"></div>
+</nav>
+<svg aria-hidden="true" focusable="false" width="0" height="0" style="position:absolute;overflow:hidden"><symbol id="tt-wordmark" viewBox="0 0 581.8 447"><g fill="currentColor">
+	<path class="st0" d="M318.4,0v226.3h28.2v-80.2h0.6l41.9,80.2h29.6L375.8,144l37.9-67.9h-29.2l-37.3,64.3h-0.6V0H318.4z M75.3,0
+		v226.3h28.5V119.6l0.1-1.4v-1.5l0.1-1.3l0.1-1.4l0.1-1.3l0.2-1.2l0.2-1.2l0.3-1.2l0.3-1.1l0.3-1.1l0.4-1l0.4-0.9l0.4-0.9l0.5-0.9
+		l0.5-0.8l0.5-0.8l0.6-0.7l0.6-0.7l0.6-0.6l0.7-0.6l0.7-0.6l0.7-0.5l0.8-0.4l0.8-0.4l0.9-0.3l0.9-0.4l0.9-0.3l0.9-0.2l0.9-0.1
+		l1.1-0.1l1.1-0.1h1.1h1.1l1,0.1l1,0.1l0.9,0.2l1,0.1l0.9,0.3l0.9,0.3l0.8,0.3l0.8,0.3l0.8,0.4l0.7,0.4l0.7,0.6l0.6,0.5l0.7,0.6
+		l0.6,0.6l0.5,0.7l0.5,0.7l0.5,0.7l0.5,0.7l0.4,0.9l0.4,0.8l0.3,0.9l0.3,0.9l0.3,0.9l0.3,1.1l0.2,1.1l0.2,1.1l0.1,1.2l0.1,1.2
+		l0.1,1.2l0.1,1.3v1.4v109.1h27.7V108.4l-0.1-2.1l-0.1-2.1l-0.1-2l-0.3-2l-0.3-1.8l-0.3-1.8l-0.4-1.7l-0.5-1.7l-0.5-1.6l-0.6-1.6
+		l-0.6-1.4l-0.7-1.4l-0.8-1.3l-0.8-1.3l-0.9-1.1l-1-1.1l-1-1l-1.1-1l-1.1-0.9l-1.2-0.9l-1.3-0.7l-1.4-0.7l-1.4-0.6l-1.5-0.6
+		l-1.5-0.5l-1.5-0.5l-1.7-0.3l-1.7-0.3l-1.8-0.2l-1.8-0.2l-1.9-0.1h-1.9l-2,0.1l-2,0.1l-2,0.3l-2,0.4l-2,0.5l-2,0.7l-2,0.7l-2,0.9
+		l-1.9,0.9l-1.9,1.1l-1.9,1.2l-1.9,1.3l-1.9,1.5l-1.8,1.6l-1.8,1.7l-1.9,1.8V0H75.3z M193.4,14.8h-0.8l-0.7,0.1l-0.7,0.1l-0.7,0.1
+		l-0.7,0.2l-0.8,0.2l-0.7,0.2l-0.7,0.3l-0.7,0.3l-0.7,0.3l-0.7,0.4l-0.6,0.4l-0.6,0.4l-0.6,0.5l-0.6,0.6l-0.6,0.5L182,20l-0.5,0.6
+		l-0.5,0.6l-0.4,0.6l-0.4,0.7l-0.4,0.6l-0.3,0.7l-0.3,0.7l-0.3,0.7l-0.2,0.7l-0.2,0.7l-0.2,0.7l-0.1,0.7l-0.1,0.7v0.8l-0.1,0.7
+		l0.1,0.8v0.8l0.1,0.7l0.1,0.8l0.2,0.7l0.2,0.7l0.2,0.7l0.3,0.7l0.3,0.8l0.3,0.6l0.4,0.7l0.4,0.6l0.4,0.7l0.5,0.5l0.5,0.6l0.5,0.6
+		l0.6,0.5l0.6,0.5l0.6,0.6l0.6,0.4l0.7,0.4l0.6,0.4l0.7,0.4l0.7,0.3l0.7,0.3l0.7,0.3l0.7,0.2l0.7,0.1l0.8,0.1l0.7,0.1l0.8,0.1h0.8
+		h0.8l0.7-0.1l0.7-0.1l0.7-0.1l0.8-0.1l0.8-0.2l0.7-0.3l0.7-0.3l0.7-0.3l0.7-0.4l0.7-0.4l0.6-0.4l0.6-0.4l0.6-0.6l0.6-0.5l0.6-0.5
+		l0.5-0.6l0.5-0.5l0.5-0.6l0.4-0.7l0.5-0.6l0.3-0.7l0.4-0.6l0.3-0.7l0.3-0.7l0.2-0.7l0.2-0.7l0.1-0.7l0.1-0.8l0.1-0.7V31l0.1-0.8
+		l-0.1-0.7v-0.8l-0.1-0.7l-0.1-0.7l-0.1-0.7l-0.2-0.7l-0.2-0.7l-0.3-0.7l-0.3-0.7l-0.4-0.7l-0.3-0.6l-0.5-0.7l-0.4-0.6l-0.5-0.6
+		L205,20l-0.5-0.5l-0.6-0.5l-0.6-0.6l-0.6-0.5l-0.6-0.5l-0.6-0.4l-0.7-0.4l-0.7-0.3l-0.7-0.3l-0.7-0.3l-0.7-0.2l-0.8-0.2l-0.8-0.2
+		l-0.7-0.1l-0.7-0.1l-0.7-0.1C194.3,14.8,193.4,14.8,193.4,14.8z M276.5,73.5l-2.2,0.1l-2.2,0.2l-1.1,0.1l-1.1,0.1l-1.1,0.3l-1,0.2
+		l-1,0.3l-1,0.4l-1,0.3l-1,0.3l-0.9,0.4l-0.9,0.5l-0.9,0.5l-0.9,0.5l-0.9,0.5l-0.9,0.5l-0.9,0.6l-0.9,0.7l-0.8,0.6l-0.9,0.7
+		l-0.8,0.7l-0.8,0.7l-1.6,1.6l-1.5,1.8l-1.4,1.8l-1.4,2h-0.7V75.6h-28.5v150.7h28.1V117.2l0.1-1.3l0.1-1.3l0.1-1.2l0.1-1.1l0.1-1.2
+		l0.2-1.1l0.3-1.1l0.3-1l0.3-1l0.3-0.9l0.4-0.9l0.4-0.9l0.5-0.9l0.5-0.8l0.5-0.8l0.6-0.7l0.6-0.7l0.6-0.7L253,99l0.7-0.6l0.7-0.5
+		l0.7-0.5l0.8-0.4l0.8-0.4l0.8-0.3l0.9-0.3l0.8-0.2l0.9-0.3l0.9-0.1l0.9-0.1l1-0.1h1h1l1.1,0.1l1,0.1l1,0.1l0.9,0.2l0.9,0.3l0.9,0.2
+		l0.8,0.4l0.8,0.3l0.8,0.4l0.7,0.5l0.7,0.5l0.7,0.5l0.6,0.6l0.6,0.6l0.5,0.7l0.5,0.7l0.5,0.7l0.5,0.8l0.4,0.8l0.4,1l0.3,0.9l0.3,1
+		l0.3,1l0.3,1.1l0.2,1.1l0.2,1.1l0.1,1.2l0.1,1.2l0.1,1.3v1.4l0.1,1.4v109.1H309V109.1l-0.1-2.2l-0.1-2.1l-0.1-2l-0.3-2l-0.3-1.9
+		l-0.3-1.8l-0.4-1.8l-0.5-1.7l-0.5-1.6l-0.6-1.6l-0.7-1.5l-0.7-1.4l-0.8-1.3l-0.9-1.3l-0.9-1.2l-1-1.1l-1.1-1.1l-1.1-1l-1.2-0.9
+		l-1.2-0.9l-1.3-0.8l-1.4-0.7l-1.4-0.7l-1.5-0.6l-1.5-0.5l-1.6-0.5l-1.7-0.3l-1.8-0.3l-1.8-0.3l-1.9-0.1l-2-0.1h-1.8L276.5,73.5
+		L276.5,73.5z M179.4,226.3h27.8V76.1h-27.8V226.3z"/>
+	<path class="st0" d="M100.7,347.9l0.2-4.8l0.1-2.2l0.2-2.2l0.1-2.1l0.2-2l0.3-1.9l0.3-1.9l0.3-1.7l0.4-1.6l0.3-1.6l0.3-1.5l0.4-1.4
+		l0.5-1.3l0.5-1.3l0.5-1.1l0.6-1.1l0.7-1l0.7-0.9l0.8-0.9l0.8-0.7l0.9-0.7l1-0.6l1-0.5l1.1-0.5l1.1-0.3l1.2-0.3l1.2-0.2l1.3-0.1
+		l1.3-0.1l1.1,0.1l1.1,0.1l1.1,0.1l1,0.3l0.9,0.3l1,0.4l0.9,0.5l0.9,0.5l0.8,0.7l0.7,0.7l0.7,0.8l0.7,0.9l0.6,0.9l0.6,1l0.5,1.1
+		l0.5,1.2l0.4,1.3l0.5,1.4l0.3,1.5l0.3,1.5l0.3,1.6l0.3,1.8l0.3,1.9l0.3,1.9l0.2,2l0.2,2.1l0.1,2.3l0.1,2.4l0.1,5l0.1,5.4h-34.8
+		L100.7,347.9z M116.2,292.6l-2.9,0.3l-2.8,0.4l-2.7,0.5l-2.6,0.7l-2.5,0.9l-2.4,1l-2.3,1.2l-2.2,1.4l-2.2,1.5l-2,1.6l-1.9,1.8
+		l-1.8,2L86,308l-1.7,2.3l-1.6,2.4l-1.4,2.6L80,318l-1.3,2.9l-1.1,3.1l-1.1,3.2l-1,3.4l-0.9,3.5l-0.8,3.7l-0.8,3.8l-0.6,4.1
+		l-0.5,4.2l-0.4,4.3l-0.4,4.4l-0.2,4.7l-0.1,4.8l-0.1,5l0.1,4.5l0.1,4.5l0.2,4.3l0.4,4.1l0.4,4l0.5,3.8L73,402l0.7,3.5l0.8,3.5
+		l0.8,3.2l1,3.1l1,3l1.1,2.9l1.2,2.6l1.3,2.6l1.4,2.4l1.5,2.2l1.6,2.1l1.7,2l1.8,1.8l1.9,1.6l2,1.6l2.1,1.3l2.2,1.2l2.2,1.1l2.3,0.9
+		l2.4,0.8l2.5,0.7l2.6,0.5l2.7,0.4l2.8,0.2l2.9,0.1l2.7-0.1l2.6-0.1l2.5-0.3l2.4-0.3l2.4-0.5l2.3-0.6l2.2-0.7l2.1-0.7l2-0.9l2-1
+		l1.8-1.1l1.7-1.1l1.7-1.3l1.6-1.4l1.5-1.5l1.4-1.6l1.4-1.7l1.3-1.8l1.1-1.9l1.2-2l1-2.1l0.9-2.2l0.9-2.3l0.8-2.4l0.7-2.5l0.6-2.6
+		l0.5-2.8l0.5-2.8l0.3-2.9l0.3-3l0.2-3.2l0.1-3.2h-25.5l-0.1,3.7l-0.2,3.5l-0.3,3.2l-0.4,3l-0.3,1.3l-0.3,1.4l-0.3,1.2l-0.3,1.2
+		l-0.3,1.1l-0.3,1.1l-0.4,1l-0.4,0.9l-0.5,0.9l-0.5,0.8l-0.5,0.7l-0.6,0.7l-0.7,0.7l-0.7,0.6l-0.7,0.6l-0.8,0.5l-0.8,0.4l-0.9,0.4
+		l-0.9,0.3l-1,0.3l-1,0.2l-1.1,0.1l-1.1,0.1h-1.2h-1.5l-1.5-0.1l-1.4-0.3l-1.3-0.3l-1.2-0.4L112,423l-1.1-0.6l-1-0.8l-1-0.8
+		l-0.9-0.9l-0.8-1l-0.8-1.1l-0.7-1.2l-0.5-1.3l-0.5-1.4l-0.5-1.6l-0.4-1.5l-0.4-1.7l-0.3-1.8l-0.3-1.9l-0.3-2l-0.3-2.1l-0.3-2.1
+		l-0.2-2.2l-0.4-4.9l-0.2-5.1l-0.2-5.5l-0.1-5.9H164V364l-0.1-5.3l-0.1-5.1l-0.3-4.9l-0.3-4.7l-0.5-4.4l-0.5-4.2l-0.3-2l-0.3-2
+		l-0.4-1.9l-0.4-1.8l-0.4-1.8l-0.5-1.7l-0.5-1.7l-0.5-1.5l-0.5-1.6l-0.5-1.5l-0.6-1.4l-0.6-1.4l-0.6-1.4l-0.7-1.2l-0.7-1.2l-0.7-1.1
+		l-0.7-1l-0.7-1.1l-0.8-0.9l-0.8-0.9l-1.7-1.7l-1.7-1.6l-1.7-1.4l-1.8-1.4l-1.9-1.2l-1.8-1.1l-1.9-1.1l-1.9-0.9l-2-0.8l-2-0.7
+		l-2.1-0.6l-2.1-0.5l-2.2-0.4l-2.2-0.3l-2.2-0.1l-2.3-0.1L116.2,292.6z"/>
+	<polygon class="st0" points="217,292.2 214.8,292.3 212.6,292.5 210.4,292.8 208.3,293.2 206.2,293.8 204.1,294.5 202.1,295.4 
+		200.1,296.4 198.2,297.4 196.2,298.7 194.3,300.1 192.5,301.6 190.7,303.2 188.9,305 187.1,306.9 185.4,308.9 184.6,309.9 
+		183.8,311.1 183,312.2 182.3,313.4 181.5,314.7 180.8,316 180.2,317.4 179.5,318.9 178.9,320.4 178.3,321.9 177.7,323.5 
+		177.2,325.1 176.7,326.8 176.2,328.5 175.7,330.3 175.3,332.2 174.8,334.1 174.5,336 174.1,338 173.8,340.1 173.2,344.3 
+		172.8,348.8 172.4,353.4 172.1,358.3 172,363.4 171.9,368.7 172,373.7 172.1,378.5 172.3,383.1 172.6,387.6 172.9,391.9 
+		173.4,396.1 173.9,400 174.5,403.8 175.3,407.5 176,410.9 176.9,414.2 177.9,417.4 178.4,418.9 178.9,420.3 179.4,421.7 180,423.1 
+		180.6,424.4 181.2,425.7 181.9,427 182.5,428.2 183.2,429.3 183.9,430.5 184.6,431.5 185.4,432.6 186.1,433.6 186.9,434.6 
+		187.7,435.5 188.6,436.4 189.5,437.3 190.3,438.1 191.3,438.9 192.2,439.7 193.2,440.4 194.2,441 195.2,441.7 196.3,442.3 
+		197.3,442.9 198.4,443.4 199.5,443.9 200.7,444.4 201.8,444.8 203,445.2 204.2,445.6 205.4,445.9 206.7,446.2 208,446.4 
+		209.3,446.6 210.6,446.8 212,446.9 213.4,447 214.7,447 216.2,447 217.6,447 219.1,446.9 220.6,446.8 222.1,446.7 223.6,446.4 
+		225.1,446.1 226.7,445.8 228.3,445.4 229.9,445 231.5,444.4 233.1,443.9 234.8,443.3 236.4,442.6 238.1,441.9 239.9,441.2 
+		241.6,440.4 241.6,417.1 238.9,418.4 236.4,419.5 234.1,420.4 231.9,421.1 229.8,421.7 227.9,422.2 226.9,422.3 226.1,422.4 
+		225.2,422.4 224.4,422.4 223,422.4 221.8,422.2 220.5,422 219.2,421.7 218,421.2 216.9,420.7 215.7,420 214.7,419.3 213.7,418.4 
+		212.7,417.5 211.8,416.4 210.9,415.3 210.1,414.1 209.3,412.7 208.5,411.2 207.8,409.7 207.1,408.1 206.5,406.3 205.9,404.5 
+		205.4,402.5 204.8,400.5 204.4,398.4 204,396.1 203.6,393.8 203.3,391.4 203,388.8 202.8,386.1 202.6,383.4 202.5,380.6 
+		202.3,377.6 202.3,374.5 202.3,371.4 202.3,367.9 202.3,364.6 202.5,361.4 202.6,358.3 202.8,355.2 203,352.4 203.3,349.7 
+		203.6,347 204,344.5 204.4,342 204.8,339.7 205.4,337.6 205.9,335.6 206.4,333.6 207.1,331.8 207.7,330.1 208.5,328.5 209.2,327 
+		210,325.6 210.9,324.3 211.9,323.2 212.8,322.1 213.9,321.1 214.9,320.2 216,319.4 217.2,318.8 218.5,318.2 219.8,317.7 
+		221.1,317.4 222.5,317.1 224,317 225.5,316.9 227,317 228.6,317.2 230.4,317.5 232.3,318.1 234.4,318.7 236.5,319.5 238.8,320.4 
+		241.2,321.5 241.2,297.5 237.5,296.3 234,295.2 230.7,294.3 227.6,293.5 224.6,292.9 221.9,292.5 220.6,292.4 219.4,292.3 
+		218.2,292.2 	"/>
+	<polygon class="st0" points="18,253.9 18,294.7 0,294.7 0,316.9 18,316.9 18,385.8 18.2,385.8 18.2,399 18.2,402.1 18.3,405 
+		18.5,407.9 18.8,410.7 19.3,413.4 19.7,416 20.3,418.4 20.9,420.8 21.6,423 22.4,425.1 23.3,427.1 24.2,429 25.3,430.9 26.5,432.6 
+		27.1,433.4 27.7,434.1 28.3,434.8 29,435.6 29.7,436.3 30.4,437 31.2,437.7 31.9,438.3 33.5,439.5 35.2,440.6 37,441.7 39,442.6 
+		41,443.4 43.1,444.1 45.3,444.8 47.7,445.4 50.1,445.9 52.7,446.3 55.3,446.7 58.1,446.9 60.9,447 63.9,447 63.9,424.2 62.8,424.1 
+		61.7,424.1 60.7,423.9 59.7,423.8 58.8,423.6 57.8,423.3 56.9,423 56,422.6 55.2,422.2 54.4,421.7 53.7,421.2 53,420.7 52.4,420.1 
+		51.7,419.4 51.1,418.7 50.5,417.9 49.9,417.2 49.4,416.3 49,415.4 48.5,414.5 48.1,413.5 47.8,412.4 47.4,411.3 47.2,410.2 
+		46.9,409 46.6,407.7 46.4,406.4 46.3,405.1 46.1,403.7 46.1,402.3 46,400.8 46,399.3 46,385.8 46.2,385.8 46.2,316.9 64.4,316.9 
+		64.4,294.7 46.2,294.7 46.2,253.9 	"/>
+	<polygon class="st0" points="268.7,253.9 268.7,294.7 250.7,294.7 250.7,316.9 268.7,316.9 268.7,447 296.9,447 296.9,316.9 
+		315,316.9 315,294.7 296.9,294.7 296.9,253.9 	"/>
+	<path class="st0" d="M518.6,347.4l0.1-6.5l0.2-3.4l0.3-3.5l0.2-1.8l0.3-1.7l0.3-1.7l0.3-1.7l0.5-1.6l0.5-1.5l0.5-1.5l0.6-1.5
+		l0.7-1.3l0.8-1.4l0.8-1.2l1-1.2l1.1-1l1.1-0.9l1.3-0.8l1.3-0.7l1.5-0.5l1.6-0.4l1.6-0.2l1.8-0.1l1.2,0.1l1.1,0.1l1.1,0.1l1,0.3
+		l1,0.3l0.9,0.5l0.9,0.5l0.8,0.5l0.8,0.7l0.7,0.7l0.7,0.8l0.7,0.9l0.6,0.9l0.5,1l0.5,1.1l0.5,1.1l0.4,1.3l0.4,1.4l0.4,1.5l0.3,1.5
+		l0.3,1.6l0.3,1.8l0.3,1.9l0.3,1.9l0.2,2l0.2,2.1l0.1,2.3l0.1,2.4l0.1,5l0.1,5.4h-34.8L518.6,347.4L518.6,347.4z M534.2,292.6
+		l-2.9,0.3l-2.8,0.4l-2.7,0.5l-2.6,0.7l-2.5,0.9l-2.4,1l-2.3,1.2l-2.2,1.4l-2.2,1.5l-2,1.6l-2,1.8l-1.8,2l-1.7,2.1l-1.7,2.3
+		l-1.6,2.4l-1.4,2.6L498,318l-1.3,2.9l-1.1,3.1l-1.1,3.2l-1,3.4l-0.9,3.5l-0.8,3.7l-0.7,3.8l-0.6,4.1l-0.5,4.2l-0.4,4.3l-0.3,4.4
+		l-0.2,4.7l-0.1,4.8l-0.1,5v4.5l0.2,4.5l0.2,4.3l0.3,4.1l0.4,4l0.5,3.8l0.6,3.7l0.7,3.5l0.8,3.5l0.8,3.2l1,3.1l1,3l1.1,2.9l1.2,2.6
+		l1.3,2.6l1.4,2.4l1.5,2.2l1.6,2.1l1.7,2l1.8,1.8l1.9,1.6l1.9,1.6l2.1,1.3l2.1,1.2l2.3,1.1l2.3,0.9l2.4,0.8l2.5,0.7l2.6,0.5l2.7,0.4
+		l2.8,0.2l2.9,0.1l2.7-0.1l2.5-0.1l2.5-0.3l2.5-0.3l2.4-0.5l2.3-0.6l2.1-0.7l2.1-0.7l2-0.9l2-1l1.8-1.1l1.7-1.1l1.7-1.3l1.6-1.4
+		l1.5-1.5l1.4-1.6l1.4-1.7l1.3-1.8l1.2-1.9l1.1-2l1-2.1l0.9-2.2l0.9-2.3l0.7-2.4l0.7-2.5l0.6-2.6l0.5-2.8l0.5-2.8l0.3-2.9l0.3-3
+		l0.2-3.2l0.1-3.2h-25.5l-0.1,3.7l-0.2,3.5l-0.3,3.2l-0.4,3l-0.3,1.3l-0.3,1.4l-0.3,1.2l-0.3,1.2l-0.3,1.1l-0.3,1.1l-0.4,1l-0.4,0.9
+		l-0.5,0.9l-0.5,0.8l-0.5,0.7l-0.6,0.7l-0.7,0.7l-0.7,0.6l-0.7,0.6l-0.8,0.5l-0.8,0.4l-0.9,0.4l-0.9,0.3l-1,0.3l-1,0.2l-1.1,0.1
+		l-1.2,0.1h-1.1h-1.6l-1.5-0.1l-1.3-0.3l-1.4-0.3l-1.2-0.4l-1.2-0.5l-1.1-0.6l-1-0.8l-1-0.9l-0.9-0.9l-0.8-1l-0.8-1.1l-0.7-1.2
+		l-0.6-1.3l-0.5-1.4l-0.5-1.6l-0.4-1.5L521,409l-0.3-1.8l-0.3-1.9l-0.3-2l-0.3-2.1l-0.3-2.1l-0.2-2.2l-0.4-4.8l-0.2-5.2l-0.2-5.5
+		l-0.1-5.9h63.2v-11.2l-0.1-5l-0.1-5.1l-0.3-4.9l-0.3-4.7l-0.5-4.4l-0.6-4.2l-0.3-2l-0.3-1.9l-0.4-1.9l-0.4-1.9l-0.4-1.8l-0.5-1.7
+		l-0.5-1.7l-0.5-1.5l-0.5-1.6l-0.5-1.5l-0.6-1.4l-0.6-1.4l-0.6-1.4l-0.7-1.2l-0.7-1.2l-0.7-1.1l-0.7-1l-0.7-1.1l-0.8-0.9l-0.8-0.9
+		l-1.7-1.7l-1.7-1.6l-1.8-1.4l-1.7-1.4l-1.8-1.2l-1.9-1.1l-2-1.1l-1.9-0.9l-2-0.8l-2-0.7l-2.1-0.6l-2.1-0.5l-2.2-0.4l-2.2-0.3
+		l-2.2-0.1l-2.3-0.1L534.2,292.6z"/>
+	<polygon class="st0" points="483.6,292.2 482.4,292.3 481.2,292.5 480,292.7 478.9,293 477.6,293.3 476.5,293.8 475.3,294.3 
+		474.3,294.8 473.1,295.4 472.1,296.2 471,296.8 470,297.7 468.9,298.5 467.9,299.4 466.9,300.4 465.9,301.4 464.9,302.4 464,303.5 
+		463,304.7 462.1,305.9 461.2,307.2 460.3,308.4 459.4,309.7 458.6,311.1 457,314 455.4,316.9 454.7,316.9 454.7,294.7 426.2,294.7 
+		426.2,447 454.7,447 454.7,354.9 454.7,352 454.8,349.2 454.9,346.6 455.2,344.1 455.5,341.8 455.8,339.5 456.2,337.4 456.7,335.4 
+		457.3,333.5 457.9,331.8 458.6,330.2 459.3,328.8 460.1,327.5 460.9,326.3 461.4,325.8 461.9,325.2 462.4,324.8 462.9,324.3 
+		464,323.5 465.1,322.7 466.3,322 467.7,321.3 469.1,320.7 470.6,320 472.2,319.5 473.9,319 475.7,318.6 477.5,318.2 479.4,317.9 
+		481.6,317.6 483.6,317.3 485.9,317.1 488.1,317 490.5,316.9 490.5,292.8 488.7,292.5 487.4,292.3 486.1,292.2 484.8,292.1 	"/>
+	<polygon class="st0" points="387.1,294.3 387.1,396.7 387.1,400.3 386.9,403.5 386.7,405.1 386.6,406.6 386.4,408.1 386.2,409.4 
+		385.9,410.7 385.7,411.9 385.3,413.1 385,414.1 384.6,415.2 384.2,416.1 383.8,417 383.3,417.8 382.8,418.6 382.2,419.3 381.6,420 
+		381,420.6 380.3,421.1 379.6,421.7 378.8,422.2 378,422.6 377.2,423 376.3,423.2 375.3,423.5 374.3,423.8 373.3,423.9 372.2,424.1 
+		371.1,424.1 370,424.2 368.9,424.1 367.8,424.1 366.8,423.9 365.8,423.8 364.8,423.6 363.9,423.3 363,423 362.1,422.6 361.3,422.2 
+		360.5,421.7 359.8,421.2 359.1,420.7 358.4,420.1 357.7,419.4 357.2,418.7 356.5,417.9 356,417.2 355.5,416.3 355.1,415.4 
+		354.6,414.5 354.2,413.5 353.8,412.4 353.5,411.3 353.2,410.2 353,409 352.7,407.7 352.5,406.4 352.4,405.1 352.2,403.7 
+		352.2,402.3 352.1,400.8 352.1,399.3 352.1,294.3 324.3,294.3 324.3,399 324.3,402 324.4,405 324.6,407.9 324.9,410.7 325.3,413.4 
+		325.7,416 326.4,418.4 327,420.8 327.7,423 328.5,425.1 329.4,427.1 330.3,429 331.4,430.9 332.6,432.6 333.2,433.4 333.8,434.1 
+		334.4,434.8 335.1,435.6 335.8,436.3 336.5,437 337.3,437.7 338,438.3 339.6,439.5 341.3,440.6 343.1,441.7 345.1,442.6 
+		347.1,443.4 349.2,444.1 351.4,444.8 353.8,445.4 356.2,445.9 358.8,446.3 361.4,446.7 364.2,446.9 367,447 370,447 372.9,447 
+		375.7,446.9 378.5,446.7 381.1,446.3 383.6,445.9 386.1,445.4 388.4,444.8 390.6,444.1 392.7,443.3 394.7,442.5 396.6,441.5 
+		398.4,440.5 399.3,440 400.1,439.4 400.9,438.8 401.6,438.1 402.4,437.5 403.1,436.8 403.8,436.1 404.5,435.4 405.1,434.7 
+		405.7,433.9 406.3,433.2 406.9,432.4 408,430.6 409,428.7 410,426.8 410.9,424.7 411.6,422.5 412.3,420.1 413,417.7 413.5,415.2 
+		413.9,412.5 414.3,409.8 414.6,406.8 414.8,403.9 414.9,400.8 414.9,397.6 414.9,294.3 	"/>
+	<polygon class="st0" points="46,160.9 46.2,160.9 46.2,98.3 64.4,98.3 64.4,76.1 46.2,76.1 46.2,35.2 18,35.2 18,76.1 0,76.1 
+		0,98.3 18,98.3 18,160.9 18.2,160.9 18.2,178.2 18.2,181.3 18.3,184.3 18.5,187.2 18.8,189.9 19.3,192.6 19.7,195.2 20.3,197.6 
+		20.9,200 21.6,202.2 22.4,204.3 23.3,206.3 24.2,208.3 25.3,210.1 26.5,211.8 27.1,212.6 27.7,213.4 28.3,214.1 29,214.8 
+		29.7,215.6 30.4,216.2 31.2,216.9 31.9,217.5 33.5,218.7 35.2,219.8 37,220.9 39,221.9 41,222.7 43.1,223.4 45.3,224.1 47.7,224.7 
+		50.1,225.1 52.7,225.6 55.3,225.9 58.1,226.1 60.9,226.2 63.9,226.3 63.9,203.4 62.8,203.4 61.7,203.3 60.7,203.2 59.7,203 
+		58.8,202.8 57.8,202.6 56.9,202.2 56,201.9 55.2,201.4 54.4,201 53.7,200.5 53,199.9 52.4,199.3 51.7,198.6 51.1,198 50.5,197.2 
+		49.9,196.4 49.4,195.5 49,194.7 48.5,193.7 48.1,192.7 47.8,191.6 47.4,190.5 47.2,189.4 46.9,188.3 46.6,187 46.4,185.7 
+		46.3,184.3 46.1,183 46.1,181.6 46,180.1 46,178.5 	"/>
+</g></symbol></svg>
+
+<header class="bar">
+  <a href="https://thinktecture.com" class="tt-logo tt-logo--head" aria-label="Thinktecture"><svg viewBox="0 0 581.8 447"><use href="#tt-wordmark"></use></svg></a>
+  <nav class="toc">
+    <a href="#abstract">Abstract</a>
+    <a href="#systeme">Systeme</a>
+    <a href="#evaluation">Evaluation</a>
+    <a href="#ergebnisse">Ergebnisse</a>
+    <a href="#diskussion">Diskussion</a>
+    <a href="#entscheidung">Matrix</a>
+  </nav>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="wrap">
+    <div class="eyebrow reveal">Strategic Research · Mini-Paper</div>
+    <h1 class="title reveal">Advanced <em>RAG</em><br>im Vergleich</h1>
+    <p class="lede reveal">Eine kontrollierte Evaluation von Standard-RAG, LightRAG und Microsoft GraphRAG auf dem biomedizinischen BioCDQA-Benchmark — mit der Frage, ob graphgestützte Architekturen gegenüber einer gut abgestimmten Baseline messbare Vorteile liefern.</p>
+    <div class="meta-row reveal">
+      <div class="m"><span class="k">Autor</span><span class="v">Lukas Köhler · Generative AI Developer</span></div>
+      <div class="m"><span class="k">Organisation</span><span class="v">Thinktecture AG</span></div>
+      <div class="m"><span class="k">Datum</span><span class="v">1. Juni 2026</span></div>
+      <div class="m"><span class="k">Benchmark</span><span class="v">thinktecture/biocdqa-rag</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ABSTRACT -->
+<section class="block" id="abstract">
+  <div class="wrap">
+    <div class="abstract reveal">
+      <div class="lbl">Abstract</div>
+      <p>Retrieval-Augmented Generation (RAG) hat sich als praktikabler Ansatz für Question Answering auf spezialisierten Wissensbeständen etabliert — besonders dort, wo faktische Fundierung, Nachvollziehbarkeit und kontrollierbares Systemverhalten wichtiger sind als rein parametrisches Modellwissen. Gleichzeitig hat sich der Designraum moderner RAG-Systeme deutlich über einfache Vektor-Retrieval-Pipelines hinaus erweitert.</p>
+      <p>Ansätze wie Standard-RAG, LightRAG und GraphRAG treffen unterschiedliche Annahmen über Dokumentrepräsentation, Retrieval-Strukturen, Kontextaufbau und die Nutzung expliziter Beziehungen zwischen Entitäten. In diesem Mini-Paper evaluieren wir diese Ansätze anhand des <strong style="color:#fff">BioCDQA-Benchmarks</strong> entlang praxisrelevanter Dimensionen: Antwortkorrektheit, Grounding über Quellen, Retrieval-Relevanz, Latenz, Ingestion-Komplexität und operative Kosten.</p>
+      <p>Ziel ist eine pragmatische Aussage darüber, ob komplexere Retrieval-Architekturen ihren zusätzlichen Aufwand bei Ingestion und Laufzeit rechtfertigen — und unter welchen Bedingungen sich welche Architektur für biomedizinische und vergleichbar spezialisierte Domänen eignet.</p>
+      <p>Vorab das zentrale Ergebnis: Auf dem ersten erhobenen Split liefert <strong style="color:#fff">LightRAG</strong> die stärkste Qualitätsbalance und die mit Abstand günstigsten Anfragekosten &#8212; erkauft durch eine ähnlich teure Indexierung wie GraphRAG. Ob sich dieser Mehraufwand rechnet, hängt entscheidend am Anfragevolumen; die abschließende <strong style="color:#fff">Entscheidungsmatrix</strong> übersetzt die Messdaten in konkrete Empfehlungen pro Einsatzszenario.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SYSTEME -->
+<section class="block" id="systeme">
+  <div class="wrap">
+    <div class="sec-no reveal">01 — Systeme</div>
+    <h2 class="reveal">Drei Architekturen, drei Annahmen über Wissen</h2>
+    <p class="read reveal">Die betrachteten Systeme unterscheiden sich vor allem darin, wie sie Wissen aus dem Dokumentkorpus repräsentieren und zur Anfragezeit nutzbar machen. Standard-RAG behandelt Dokumente primär als Menge einzelner Text-Chunks. Graphbasierte Ansätze wie Microsoft GraphRAG und LightRAG erweitern diese flache Repräsentation um explizite Entitäten, Relationen und strukturelle Zusammenhänge. Entscheidend für die Evaluation ist, ob diese zusätzlichen Strukturen tatsächlich messbare Vorteile gegenüber einer gut konfigurierten Baseline liefern.</p>
+
+    <div class="sys-grid reveal">
+      <div class="sys-card">
+        <span class="tag t-std">Baseline</span>
+        <h3>Standard-RAG</h3>
+        <p>Ingestion → Chunking → Indexierung → Retrieval → kontextgestützte LLM-Antwort. Dokumente werden als flache Chunks behandelt und über Keyword-, Vector- oder Hybrid Search abgerufen.</p>
+      </div>
+      <div class="sys-card">
+        <span class="tag t-light">Graph · leichtgewichtig</span>
+        <h3>LightRAG</h3>
+        <p>Graphbasiertes Text-Indexing mit Dual-Level Retrieval. Kombiniert Entitäten/Relationen mit Vector Search und unterstützt inkrementelle Updates — ohne den Overhead schwerer GraphRAG-Verfahren.</p>
+      </div>
+      <div class="sys-card">
+        <span class="tag t-graph">Graph · corpusweit</span>
+        <h3>Microsoft GraphRAG</h3>
+        <p>Knowledge-Graph-Erzeugung, hierarchische Community Detection und vorberechnete Community Summaries für corpusweite Sensemaking-Fragen via Map-Reduce-Summarization.</p>
+      </div>
+    </div>
+
+    <h3 class="reveal">Standard-RAG</h3>
+    <p class="read reveal">Standard-RAG ruft zur Laufzeit relevante externe Dokumente ab und integriert sie als Kontext in den Prompt, um domänenspezifisches Wissen nutzbar zu machen und Halluzinationen zu reduzieren. Die Pipeline besteht aus zwei Phasen: <strong>Ingestion</strong> (Sammeln, Normalisieren, Chunking, Indexierung) und <strong>Query-Time Retrieval</strong>. Die relevantesten Abschnitte werden zusammen mit der Anfrage an das Sprachmodell übergeben.</p>
+    <div class="pipe reveal">
+      <span class="step">Keyword / BM25</span><span class="arr">+</span>
+      <span class="step">Vector Search</span><span class="arr">→</span>
+      <span class="step">Hybrid Fusion (RRF)</span><span class="arr">→</span>
+      <span class="step">Reranker</span><span class="arr">→</span>
+      <span class="step">HyQE</span>
+    </div>
+    <figure class="diag-fig reveal">
+      <div class="diag-wrap"><svg class="diag" viewBox="0 0 900 392" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah-s" viewBox="0 0 10 10" refX="8.4" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9a9089"/></marker><marker id="ahc-s" viewBox="0 0 10 10" refX="8.4" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FF584F"/></marker></defs><text class="lane" x="22.0" y="26.0">INGESTION</text><rect class="nbox" x="25.0" y="53.0" width="140.0" height="50.0" rx="11"/><text class="lbl" x="95.0" y="78.0">Datensatz</text><rect class="nbox" x="230.0" y="53.0" width="140.0" height="50.0" rx="11"/><text class="lbl" x="300.0" y="78.0">Chunking</text><rect class="nbox" x="435.0" y="53.0" width="140.0" height="50.0" rx="11"/><text class="lbl" x="505.0" y="78.0">Embedding</text><rect class="nbox" x="640.0" y="53.0" width="140.0" height="50.0" rx="11"/><text class="lbl" x="710.0" y="78.0">Datenbank</text><path class="edge" d="M165,78 L230,78" marker-end="url(#ah-s)"/><path class="edge" d="M370,78 L435,78" marker-end="url(#ah-s)"/><path class="edge" d="M575,78 L640,78" marker-end="url(#ah-s)"/><rect class="nbox-accent" x="240.0" y="142.0" width="120.0" height="46.0" rx="11"/><text class="lbl" x="300.0" y="165.0">LLM</text><rect class="nbox-accent" x="445.0" y="142.0" width="120.0" height="46.0" rx="11"/><text class="lbl" x="505.0" y="165.0">HyQE</text><path class="edge edge-dash" d="M300,103 L300,140" marker-end="url(#ah-s)"/><path class="edge edge-dash" d="M360,165 L443,165" marker-end="url(#ah-s)"/><path class="edge edge-dash" d="M505,140 L505,105" marker-end="url(#ah-s)"/><line class="divider" x1="20" y1="228" x2="880" y2="228"/><text class="lane" x="22.0" y="256.0">RETRIEVAL</text><rect class="nbox" x="11.0" y="280.0" width="128.0" height="50.0" rx="11"/><text class="lbl" x="75.0" y="305.0">Query</text><rect class="nbox" x="157.0" y="280.0" width="128.0" height="50.0" rx="11"/><text class="lbl" x="221.0" y="305.0">Embedding</text><rect class="nbox" x="303.0" y="280.0" width="128.0" height="50.0" rx="11"/><text class="lbl" x="367.0" y="305.0">Datenbank</text><rect class="nbox" x="449.0" y="280.0" width="128.0" height="50.0" rx="11"/><text class="lbl" x="513.0" y="305.0">Kontext</text><rect class="nbox-accent" x="595.0" y="280.0" width="128.0" height="50.0" rx="11"/><text class="lbl" x="659.0" y="305.0">LLM</text><rect class="nbox-solid" x="741.0" y="280.0" width="128.0" height="50.0" rx="11"/><text class="lbl-w" x="805.0" y="305.0">Antwort</text><path class="edge" d="M139,305 L157,305" marker-end="url(#ah-s)"/><path class="edge" d="M285,305 L303,305" marker-end="url(#ah-s)"/><path class="edge" d="M431,305 L449,305" marker-end="url(#ah-s)"/><path class="edge" d="M577,305 L595,305" marker-end="url(#ah-s)"/><path class="edge" d="M723,305 L741,305" marker-end="url(#ah-s)"/><path class="edge-c" d="M75,330 L75,362 L659,362 L659,332" marker-end="url(#ahc-s)"/><text class="note" x="367.0" y="378.0">Query fließt zusätzlich direkt ins LLM</text></svg></div>
+      <figcaption class="tbl-cap"><span class="tnum">Diagramm 1</span><span>Standard-RAG — Ingestion (mit HyQE-Anreicherung) und Query-Time Retrieval.</span></figcaption>
+    </figure>
+    <div class="kbox reveal">
+      <div class="k"><div class="kt">Keyword Search</div><p>Stark bei exakten Begriffen, IDs, Abkürzungen, Eigennamen und seltenen Fachtermini. Schwach bei semantischer Ähnlichkeit ohne Wortüberlappung.</p></div>
+      <div class="k"><div class="kt">Vector Search</div><p>Relevanz über semantische Nähe statt identischer Begriffe. Schwach bei exakten Zahlen, Codes und sehr seltenen Begriffen.</p></div>
+      <div class="k"><div class="kt">Reranker</div><p>Bewertet Kandidaten nach dem initialen Retrieval präziser. Verbessert das finale Kontextfenster — auf Kosten von Latenz und Rechenaufwand.</p></div>
+      <div class="k"><div class="kt">HyQE</div><p>Hypothetical Query Embeddings erweitern kurze oder unspezifische Anfragen. Erhöht Recall, erzeugt aber zusätzliche LLM-Calls und Kosten.</p></div>
+    </div>
+
+    <h3 class="reveal">Microsoft GraphRAG</h3>
+    <p class="read reveal">GraphRAG adressiert <em>global sensemaking questions</em> — Fragen nach zentralen Themen, Trends oder übergreifenden Zusammenhängen, die nicht durch wenige lokale Textstellen beantwortet werden können. Statt Top-k-Chunks zu retrieven, erzeugt das System aus dem Korpus einen Knowledge Graph, zerlegt ihn hierarchisch in thematische Communities und berechnet bereits zur Indexing-Zeit Community Summaries vor.</p>
+    <div class="pipe reveal">
+      <span class="step">Text Chunks</span><span class="arr">→</span>
+      <span class="step">Entity & Relation Extraction</span><span class="arr">→</span>
+      <span class="step">Knowledge Graph</span><span class="arr">→</span>
+      <span class="step">Leiden Community Detection</span><span class="arr">→</span>
+      <span class="step">Community Summaries</span><span class="arr">→</span>
+      <span class="step">Map-Reduce Answering</span>
+    </div>
+    <p class="read reveal">Im <strong>Map-Schritt</strong> erzeugt das LLM partielle Antworten je Community-Batch und vergibt einen Hilfreichkeits-Score; nicht hilfreiche Antworten werden verworfen. Im <strong>Reduce-Schritt</strong> werden die verbleibenden Teilantworten zu einer globalen Antwort zusammengeführt. Die Stärken liegen laut Paper bei <span class="accent">Comprehensiveness und Diversity</span>; die Kosten entstehen durch die aufwendige Indexing-Phase. GraphRAG lohnt sich vor allem bei großen, statischen Korpora mit vielen wiederkehrenden globalen Analysefragen.</p>
+    <figure class="diag-fig reveal">
+      <div class="diag-wrap"><svg class="diag" viewBox="0 0 1000 290" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah-gi" viewBox="0 0 10 10" refX="8.4" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9a9089"/></marker><marker id="ahc-gi" viewBox="0 0 10 10" refX="8.4" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FF584F"/></marker></defs><text class="lane" x="22.0" y="26.0">INGESTION</text><rect class="nbox" x="25.0" y="126.0" width="130.0" height="48.0" rx="11"/><text class="lbl" x="90.0" y="150.0">Datensatz</text><rect class="nbox" x="210.0" y="126.0" width="130.0" height="48.0" rx="11"/><text class="lbl" x="275.0" y="150.0">Chunking</text><rect class="nbox-accent" x="385.0" y="114.0" width="170.0" height="72.0" rx="11"/><text class="lbl" x="470.0" y="141.5">LLM</text><text class="lbl" x="470.0" y="158.5">Leiden-Algorithmus</text><rect class="group" x="600" y="40" width="380" height="205" rx="16"/><text class="glabel" x="622.0" y="66.0">Communities</text><rect class="nbox" x="624.0" y="84.0" width="154.0" height="120.0" rx="11"/><text class="glabel-c" x="701.0" y="108.0">Community</text><text class="lbl" x="701.0" y="139.0">Entities</text><text class="lbl" x="701.0" y="157.0">Relations (gew.)</text><text class="lbl" x="701.0" y="175.0">Claims</text><rect class="nbox" x="802.0" y="84.0" width="154.0" height="120.0" rx="11"/><text class="glabel-c" x="879.0" y="108.0">Community</text><text class="lbl" x="879.0" y="139.0">Entities</text><text class="lbl" x="879.0" y="157.0">Relations (gew.)</text><text class="lbl" x="879.0" y="175.0">Claims</text><path class="edge" d="M155,150 L210,150" marker-end="url(#ah-gi)"/><path class="edge" d="M340,150 L385,150" marker-end="url(#ah-gi)"/><path class="edge" d="M555,150 L596,150" marker-end="url(#ah-gi)"/><path class="edge" d="M778,157 L802,157" marker-end="url(#ah-gi)" marker-start="url(#ah-gi)"/></svg></div>
+      <figcaption class="tbl-cap"><span class="tnum">Diagramm 2</span><span>Microsoft GraphRAG — Ingestion: LLM-Extraktion, Leiden-Communities mit Entities, Relations und Claims.</span></figcaption>
+    </figure>
+    <figure class="diag-fig reveal">
+      <div class="diag-wrap"><svg class="diag" viewBox="0 0 980 356" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah-gs" viewBox="0 0 10 10" refX="8.4" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9a9089"/></marker><marker id="ahc-gs" viewBox="0 0 10 10" refX="8.4" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FF584F"/></marker></defs><text class="lane" x="22.0" y="26.0">RETRIEVAL  ·  GLOBAL SEARCH</text><text class="glabel-c" x="95.0" y="104.0">Graph-Kontext</text><rect class="nbox" x="20.0" y="121.0" width="150.0" height="150.0" rx="11"/><text class="lbl" x="95.0" y="179.0">Claims</text><text class="lbl" x="95.0" y="196.0">Entities</text><text class="lbl" x="95.0" y="213.0">Relations</text><rect class="nbox-accent" x="199.0" y="169.0" width="112.0" height="54.0" rx="11"/><text class="lbl" x="255.0" y="187.5">LLM</text><text class="lbl" x="255.0" y="204.5">(Map)</text><rect class="nbox" x="335.0" y="77.0" width="312.0" height="46.0" rx="11"/><text class="lbl" x="491.0" y="100.0">Teilantwort (nützlich)</text><rect class="nbox" x="335.0" y="173.0" width="312.0" height="46.0" rx="11"/><text class="lbl" x="491.0" y="196.0">Teilantwort (teilweise nützlich)</text><rect class="nbox-mute" x="335.0" y="273.0" width="312.0" height="46.0" rx="11"/><text class="lbl" x="491.0" y="296.0">Teilantwort (nutzlos)</text><rect class="nbox" x="670.0" y="125.0" width="120.0" height="46.0" rx="11"/><text class="lbl" x="730.0" y="148.0">behalten  ✓</text><rect class="nbox-mute" x="670.0" y="273.0" width="120.0" height="46.0" rx="11"/><text class="lbl" x="730.0" y="296.0">verwerfen  ✕</text><rect class="nbox-accent" x="834.0" y="121.0" width="112.0" height="54.0" rx="11"/><text class="lbl" x="890.0" y="139.5">LLM</text><text class="lbl" x="890.0" y="156.5">(Reduce)</text><rect class="nbox-solid" x="834.0" y="255.0" width="112.0" height="46.0" rx="11"/><text class="lbl-w" x="890.0" y="278.0">Antwort</text><path class="edge" d="M170,196 L197,196" marker-end="url(#ah-gs)"/><path class="edge" d="M311,196 L323,196 L323,100 L333,100" marker-end="url(#ah-gs)"/><path class="edge" d="M311,196 L333,196" marker-end="url(#ah-gs)"/><path class="edge edge-dash" d="M311,196 L323,196 L323,296 L333,296" marker-end="url(#ah-gs)"/><path class="edge" d="M647,100 L658,100 L658,148 L668,148" marker-end="url(#ah-gs)"/><path class="edge" d="M647,196 L658,196 L658,148 L668,148" marker-end="url(#ah-gs)"/><path class="edge edge-dash" d="M647,296 L668,296" marker-end="url(#ah-gs)"/><path class="edge" d="M790,148 L832,148" marker-end="url(#ah-gs)"/><path class="edge-c" d="M890,175 L890,253" marker-end="url(#ahc-gs)"/></svg></div>
+      <figcaption class="tbl-cap"><span class="tnum">Diagramm 3</span><span>Microsoft GraphRAG — Global Search: Map erzeugt bewertete Teilantworten, Reduce fasst die behaltenen zur finalen Antwort zusammen.</span></figcaption>
+    </figure>
+
+    <h3 class="reveal">LightRAG</h3>
+    <p class="read reveal">LightRAG erweitert chunkbasierte Pipelines um eine strukturierte Wissensrepräsentation, ohne den schweren Community-Overhead von GraphRAG. Die Methodik besteht aus graphbasiertem Text-Indexing, <strong>Dual-Level Retrieval</strong> und retrieval-augmented Answer Generation. Entitäten bilden Knoten, Relationen bilden Kanten — beide angereichert mit textuellen Key-Value-Beschreibungen über LLM Profiling und dedupliziert für einen kompakten, durchsuchbaren Graph.</p>
+    <div class="kbox reveal">
+      <div class="k"><div class="kt">Low-Level Retrieval</div><p>Fokussiert auf konkrete Entitäten, Attribute und direkte Beziehungen. Liefert Tiefe für spezifische Fragen.</p></div>
+      <div class="k"><div class="kt">High-Level Retrieval</div><p>Fokussiert auf breitere Themen und übergeordnete Konzepte. Liefert Breite für analytische Fragen.</p></div>
+      <div class="k"><div class="kt">Graph + Vector</div><p>Kombiniert Graphstruktur mit vektorbasiertem Retrieval — schneller und günstiger als das Traversieren großer Community-Strukturen.</p></div>
+      <div class="k"><div class="kt">Incremental Updates</div><p>Neue Dokumente werden in den bestehenden Graph integriert, statt den Index vollständig neu aufzubauen — ideal für dynamische Wissensbasen.</p></div>
+    </div>
+    <figure class="diag-fig reveal">
+      <div class="diag-wrap"><svg class="diag" viewBox="0 0 900 290" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah-li" viewBox="0 0 10 10" refX="8.4" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9a9089"/></marker><marker id="ahc-li" viewBox="0 0 10 10" refX="8.4" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FF584F"/></marker></defs><text class="lane" x="22.0" y="26.0">INGESTION</text><rect class="nbox" x="21.0" y="137.0" width="118.0" height="46.0" rx="11"/><text class="lbl" x="80.0" y="160.0">Datensatz</text><rect class="nbox" x="166.0" y="137.0" width="118.0" height="46.0" rx="11"/><text class="lbl" x="225.0" y="160.0">Chunking</text><rect class="nbox-accent" x="312.0" y="137.0" width="96.0" height="46.0" rx="11"/><text class="lbl" x="360.0" y="160.0">LLM</text><rect class="nbox" x="435.0" y="114.0" width="140.0" height="92.0" rx="11"/><text class="lbl" x="505.0" y="151.5">Entities</text><text class="lbl" x="505.0" y="168.5">Relations</text><rect class="nbox-accent" x="602.0" y="137.0" width="96.0" height="46.0" rx="11"/><text class="lbl" x="650.0" y="160.0">LLM</text><rect class="nbox" x="740.0" y="137.0" width="120.0" height="46.0" rx="11"/><text class="lbl" x="800.0" y="160.0">Zusammenf.</text><rect class="nbox" x="595.0" y="44.0" width="110.0" height="44.0" rx="11"/><text class="lbl" x="650.0" y="66.0">Embedding</text><path class="edge" d="M139,160 L166,160" marker-end="url(#ah-li)"/><path class="edge" d="M284,160 L312,160" marker-end="url(#ah-li)"/><path class="edge" d="M408,160 L435,160" marker-end="url(#ah-li)"/><path class="edge" d="M575,160 L602,160" marker-end="url(#ah-li)"/><path class="edge" d="M698,160 L740,160" marker-end="url(#ah-li)"/><path class="edge" d="M505,114 L505,66 L593,66" marker-end="url(#ah-li)"/><path class="edge" d="M800,137 L800,66 L707,66" marker-end="url(#ah-li)"/><path class="edge edge-dash" d="M800,183 L800,250 L505,250 L505,208" marker-end="url(#ah-li)"/><text class="note" x="505.0" y="266.0">inkrementelle Anreicherung des Graphen</text></svg></div>
+      <figcaption class="tbl-cap"><span class="tnum">Diagramm 4</span><span>LightRAG — Ingestion: Graph-Aufbau aus Entities/Relations mit LLM-Zusammenfassung und inkrementeller Anreicherung.</span></figcaption>
+    </figure>
+    <figure class="diag-fig reveal">
+      <div class="diag-wrap"><svg class="diag" viewBox="0 0 900 508" xmlns="http://www.w3.org/2000/svg" role="img"><defs><marker id="ah-lr" viewBox="0 0 10 10" refX="8.4" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9a9089"/></marker><marker id="ahc-lr" viewBox="0 0 10 10" refX="8.4" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FF584F"/></marker></defs><text class="lane" x="22.0" y="26.0">RETRIEVAL  ·  DUAL-LEVEL</text><rect class="nbox" x="300.0" y="26.0" width="300.0" height="44.0" rx="11"/><text class="lbl" x="450.0" y="48.0">Query</text><rect class="nbox-accent" x="135.0" y="100.0" width="210.0" height="40.0" rx="11"/><text class="lbl" x="240.0" y="120.0">Lokale Keywords</text><rect class="nbox-accent" x="555.0" y="100.0" width="210.0" height="40.0" rx="11"/><text class="lbl" x="660.0" y="120.0">Globale Keywords</text><text class="glabel-c" x="240.0" y="182.0">Low-Level Retrieval</text><text class="glabel-c" x="660.0" y="182.0">High-Level Retrieval</text><rect class="nbox" x="155.0" y="200.0" width="170.0" height="44.0" rx="11"/><text class="lbl" x="240.0" y="222.0">Entity (matched)</text><rect class="nbox" x="575.0" y="200.0" width="170.0" height="44.0" rx="11"/><text class="lbl" x="660.0" y="222.0">Relation (matched)</text><rect class="nbox" x="142.0" y="290.0" width="196.0" height="44.0" rx="11"/><text class="lbl" x="240.0" y="312.0">1-Hop Nachbarn</text><rect class="nbox" x="562.0" y="290.0" width="196.0" height="44.0" rx="11"/><text class="lbl" x="660.0" y="312.0">1-Hop Nachbarn</text><rect class="nbox" x="210.0" y="395.0" width="180.0" height="46.0" rx="11"/><text class="lbl" x="300.0" y="418.0">Dedup + Merge</text><rect class="nbox-accent" x="450.0" y="395.0" width="100.0" height="46.0" rx="11"/><text class="lbl" x="500.0" y="418.0">LLM</text><rect class="nbox-solid" x="622.0" y="395.0" width="120.0" height="46.0" rx="11"/><text class="lbl-w" x="682.0" y="418.0">Antwort</text><path class="edge" d="M450,70 L450,90 L240,90 L240,100" marker-end="url(#ah-lr)"/><path class="edge" d="M450,70 L450,90 L660,90 L660,100" marker-end="url(#ah-lr)"/><path class="edge" d="M240,140 L240,200" marker-end="url(#ah-lr)"/><path class="edge" d="M660,140 L660,200" marker-end="url(#ah-lr)"/><path class="edge" d="M240,244 L240,290" marker-end="url(#ah-lr)"/><path class="edge" d="M660,244 L660,290" marker-end="url(#ah-lr)"/><path class="edge" d="M240,334 L240,395" marker-end="url(#ah-lr)"/><path class="edge" d="M660,334 L660,372 L390,372 L390,395" marker-end="url(#ah-lr)"/><path class="edge" d="M390,418 L450,418" marker-end="url(#ah-lr)"/><path class="edge" d="M550,418 L622,418" marker-end="url(#ah-lr)"/><text class="note" x="450.0" y="468.0">Matching via Cosine Similarity  ·  Kontext als komprimierte Key-Value-Paare</text><text class="note" x="450.0" y="488.0">keine rekursiven Traversals — nur Nachbarschafts-Lookups + Vektorsuche</text></svg></div>
+      <figcaption class="tbl-cap"><span class="tnum">Diagramm 5</span><span>LightRAG — Dual-Level Retrieval: lokale Keywords über Entities (Low-Level), globale über Relations (High-Level), danach Merge und Antwort.</span></figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- EVALUATION -->
+<section class="block" id="evaluation">
+  <div class="wrap">
+    <div class="sec-no reveal">02 — Evaluation</div>
+    <h2 class="reveal">Methodik, Datensatz &amp; Observability</h2>
+    <p class="read reveal">Für die Evaluation wird der biomedizinische QA-Datensatz <code>thinktecture/biocdqa-rag</code> verwendet. BioCDQA basiert auf PubMed-Volltexten und manuell annotierten Frage-Antwort-Paaren. Jede Frage ist mit konkreten PubMed-Artikeln verknüpft, die den Ground-Truth-Kontext bilden. Die durchschnittliche Dokumentgröße liegt bei ca. <strong>53.000 Zeichen</strong> bzw. — je nach Tokenizer — etwa <strong>21.000 Tokens</strong> (biomedizinische Volltexte tokenisieren mit ~2,5 Zeichen/Token dichter als Alltagstext); der Gesamtkorpus umfasst damit grob <strong>1,1 M Tokens</strong>.</p>
+
+    <h3 class="reveal">Setup &#8212; Modelle &amp; Komponenten</h3>
+    <p class="read reveal">Alle Systeme teilen sich dieselben Modelle und Komponenten; die gemessenen Unterschiede stammen damit ausschließlich aus der Retrieval- und Kontextstrategie, nicht aus unterschiedlichen Backbones.</p>
+    <figure class="tbl-fig reveal">
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Rolle</th><th>Komponente</th></tr></thead>
+        <tbody>
+          <tr><td>LLM &#8212; alle Aufrufe (Antwort, Extraktion, HyQE, Map-Reduce)</td><td><code>gpt-oss-120b</code></td></tr>
+          <tr><td>Embeddings &#8212; alle Aufrufe</td><td><code>qwen3-embedding:8b</code> · 4096 dim</td></tr>
+          <tr><td>Reranker (nur Standard-RAG)</td><td>Cohere <code>Rerank 4 Pro</code> via OpenRouter</td></tr>
+          <tr><td>Evaluation</td><td>LLM-as-a-judge (<code>gpt-oss-120b</code>) · Tracing über Langfuse</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <figcaption class="tbl-cap"><span class="tnum">Setup</span><span>Einheitliche Modell- und Komponentenbasis über alle vier Pipeline-Varianten</span></figcaption>
+    </figure>
+
+    <h3 class="reveal">BioCDQA-Tiers</h3>
+    <p class="read reveal">Der Datensatz ist in mehrere Tiers unterteilt, die über Korpusgröße, Signal-Anteil und Evaluationsumfang skalieren. Je niedriger der Signal-Anteil (QA-Docs zu Gesamtdokumenten), desto schwieriger das Retrieval — relevante Dokumente müssen in zunehmend verrauschten Korpora gefunden werden. Der zur Ergebniserhebung genutzte <strong>XXS-Split</strong> bildet dabei den Sonderfall <em>ohne</em> Distraktoren ab (Signal 100 %, 0 Noise-Docs): Die bisherigen Retrieval-Metriken werden also noch völlig ohne Such-Noise gemessen — die Noise-Robustheit der Verfahren ist damit bislang ungetestet.</p>
+    <figure class="tbl-fig reveal">
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Tier</th><th>Profil</th><th class="num">Dok. gesamt</th><th class="num">QA-Docs</th><th class="num">Noise-Docs</th><th class="num">QA-Paare</th><th class="num">Signal</th></tr></thead>
+        <tbody>
+          <tr><td>xxs</td><td>biocdqa-xxs</td><td class="num">52</td><td class="num">52</td><td class="num">0</td><td class="num">50</td><td class="num">100 %</td></tr>
+          <tr><td>xs</td><td>biocdqa-xs</td><td class="num">527</td><td class="num">50</td><td class="num">477</td><td class="num">83</td><td class="num">9,5 %</td></tr>
+          <tr><td>s</td><td>biocdqa-s</td><td class="num">1.132</td><td class="num">149</td><td class="num">983</td><td class="num">183</td><td class="num">13,2 %</td></tr>
+          <tr><td>m</td><td>biocdqa-m</td><td class="num">2.180</td><td class="num">494</td><td class="num">1.686</td><td class="num">435</td><td class="num">22,7 %</td></tr>
+          <tr><td>l</td><td>biocdqa-l</td><td class="num">3.368</td><td class="num">1.043</td><td class="num">2.325</td><td class="num">737</td><td class="num">31,0 %</td></tr>
+          <tr><td>xl</td><td>biocdqa-xl</td><td class="num">6.287</td><td class="num">1.687</td><td class="num">4.600</td><td class="num">987</td><td class="num">26,8 %</td></tr>
+          <tr><td>xxl</td><td>biocdqa-xxl</td><td class="num">11.205</td><td class="num">2.117</td><td class="num">9.088</td><td class="num">1.133</td><td class="num">18,9 %</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <figcaption class="tbl-cap"><span class="tnum">Tabelle 1</span><span>BioCDQA-Tiers nach Dateisystem und Evaluationsdaten</span></figcaption>
+    </figure>
+
+    <h3 class="reveal">Observability</h3>
+    <p class="read reveal">Die Observability basiert zentral auf <strong>Langfuse</strong>. Jede CLI-Ausführung erzeugt eine eigene Session mit eindeutiger ID, über die alle Spans, Modellaufrufe, Retrieval-Schritte und Evaluationsmetriken einer gemeinsamen Trace-Struktur zugeordnet werden. Das Tracing unterscheidet automatische Spans für Modellaufrufe und explizite Spans für Pipeline-Schritte; fehlerhafte Schritte werden mit Fehlerstatus erfasst statt verloren zu gehen.</p>
+    <div class="kbox reveal">
+      <div class="k"><div class="kt">Generation-Spans</div><p>Eingabe, Antwort, Modellname, Rolle und Tokenverbrauch — z. B. für Antwortgenerierung, HyQE-Generierung oder LLM-Evaluation.</p></div>
+      <div class="k"><div class="kt">Pipeline-Spans</div><p>Retrieval, Reranking, externe RAG-Abfragen und Evaluationslogik werden als explizite Spans sichtbar.</p></div>
+      <div class="k"><div class="kt">Benchmark-Scores</div><p>Latenz, Tokenverbrauch, geschätzte Kosten und Retrieval-Größe pro Query als Langfuse-Scores.</p></div>
+      <div class="k"><div class="kt">Eval-Metriken</div><p>Relevance, Correctness, Faithfulness, Context Recall, Document Recall/Precision und Passage Recall auf Experimentebene.</p></div>
+    </div>
+    <p class="read reveal">Für Microsoft GraphRAG werden zusätzlich interne LLM-Aufrufe über LiteLLM und OpenTelemetry angebunden, sodass auch Entity Extraction, Community Report Generation und Map-Reduce-Summarization innerhalb der Trace-Struktur erscheinen. Ein <strong>Offline-Modus</strong> deaktiviert die Observability für Unit-Tests und lokale Läufe als No-op.</p>
+  </div>
+</section>
+
+<!-- ERGEBNISSE -->
+<section class="block" id="ergebnisse">
+  <div class="wrap">
+    <div class="sec-no reveal">03 — Ergebnisse</div>
+    <h2 class="reveal">BioCDQA-XXS: erste indikative Messung</h2>
+    <p class="read reveal">Zum aktuellen Zeitpunkt wurde ausschließlich der <strong>XXS-Split</strong> erhoben, da größere Splits erhebliche Kosten verursachen. Alle Systeme liefen auf der identischen Modellbasis aus der Methodik (gpt-oss-120b, qwen3-embedding:8b, Cohere Rerank 4 Pro), sodass sich Unterschiede primär auf die Retrieval- und Kontextstrategie zurückführen lassen. Wir betrachten die Ergebnisse in drei Schritten: zuerst die <strong>Antwort- und Retrieval-Qualität</strong>, dann <strong>Kosten und Latenz zur Query-Zeit</strong> und schließlich die einmaligen <strong>Ingestion-Kosten</strong> &#8212; am Ende zu einer Total-Cost-Betrachtung zusammengeführt.</p>
+
+    <!-- CHART -->
+    <div class="chart-card reveal">
+      <div class="legend">
+        <div class="li"><span class="sw" style="background:var(--c-std)"></span>Standard-RAG <span style="color:var(--muted)">· Rerank + HyQE</span></div>
+        <div class="li"><span class="sw" style="background:var(--c-light)"></span>LightRAG <span style="color:var(--muted)">· Mix Mode</span></div>
+        <div class="li"><span class="sw" style="background:var(--c-grg)"></span>GraphRAG <span style="color:var(--muted)">· Global / Map-Reduce</span></div>
+        <div class="li"><span class="sw" style="background:var(--c-grl)"></span>GraphRAG <span style="color:var(--muted)">· Local Search</span></div>
+      </div>
+
+      <div class="metric-row" data-chart>
+        <div class="mlabel"><span class="mname">Relevance</span><span class="mhint">höher = besser</span></div>
+        <div class="bars">
+          <div class="bar-line"><span class="bn">Standard</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-std)" data-w="80.6"></div></div><span class="bv">0.806</span></div>
+          <div class="bar-line"><span class="bn">LightRAG</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-light)" data-w="86.3"></div></div><span class="bv">0.863</span></div>
+          <div class="bar-line"><span class="bn">GR-Global</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grg)" data-w="85.7"></div></div><span class="bv">0.857</span></div>
+          <div class="bar-line"><span class="bn">GR-Local</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grl)" data-w="89.9"></div></div><span class="bv bestv">0.899</span></div>
+        </div>
+      </div>
+
+      <div class="metric-row" data-chart>
+        <div class="mlabel"><span class="mname">Correctness</span><span class="mhint">höher = besser</span></div>
+        <div class="bars">
+          <div class="bar-line"><span class="bn">Standard</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-std)" data-w="38.5"></div></div><span class="bv">0.385</span></div>
+          <div class="bar-line"><span class="bn">LightRAG</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-light)" data-w="49.2"></div></div><span class="bv">0.492</span></div>
+          <div class="bar-line"><span class="bn">GR-Global</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grg)" data-w="53.5"></div></div><span class="bv">0.535</span></div>
+          <div class="bar-line"><span class="bn">GR-Local</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grl)" data-w="48.3"></div></div><span class="bv">0.483</span></div>
+        </div>
+      </div>
+
+      <div class="metric-row" data-chart>
+        <div class="mlabel"><span class="mname">Faithfulness</span><span class="mhint">Grounding · höher = besser</span></div>
+        <div class="bars">
+          <div class="bar-line"><span class="bn">Standard</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-std)" data-w="67.4"></div></div><span class="bv">0.674</span></div>
+          <div class="bar-line"><span class="bn">LightRAG</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-light)" data-w="98.6"></div></div><span class="bv bestv">0.986</span></div>
+          <div class="bar-line"><span class="bn">GR-Global</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grg)" data-w="10.6"></div></div><span class="bv">0.106</span></div>
+          <div class="bar-line"><span class="bn">GR-Local</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grl)" data-w="37.3"></div></div><span class="bv">0.373</span></div>
+        </div>
+      </div>
+
+      <div class="metric-row" data-chart>
+        <div class="mlabel"><span class="mname">Context Recall</span><span class="mhint">höher = besser</span></div>
+        <div class="bars">
+          <div class="bar-line"><span class="bn">Standard</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-std)" data-w="44.3"></div></div><span class="bv">0.443</span></div>
+          <div class="bar-line"><span class="bn">LightRAG</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-light)" data-w="71.2"></div></div><span class="bv bestv">0.712</span></div>
+          <div class="bar-line"><span class="bn">GR-Global</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grg)" data-w="9.5"></div></div><span class="bv">0.095</span></div>
+          <div class="bar-line"><span class="bn">GR-Local</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grl)" data-w="42.9"></div></div><span class="bv">0.429</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FINDING -->
+    <div class="finding reveal">
+      <div class="lbl">Neuer Befund · GraphRAG Local Search</div>
+      <h3>Der Local-Search-Modus repariert GraphRAGs Grounding-Problem — nur teilweise.</h3>
+      <p>Der ursprüngliche Vorbehalt gegenüber GraphRAG lautete, das Verfahren nur dann weiterzuverfolgen, wenn ein alternativer Query-Modus die Faithfulness deutlich verbessert. Genau das zeigt der Local-Search-Run: gegenüber dem globalen Map-Reduce-Modus steigt die Faithfulness von 0.106 auf 0.373 und der Context Recall von 0.095 auf 0.429 — bei gleichzeitig höchster Relevance aller vier Varianten (0.899). Die Schwäche lag also im globalen Antwortmechanismus, nicht in der Graph-Architektur an sich.</p>
+      <div class="stats">
+        <div class="st"><div class="num">3,5×</div><div class="cap">Faithfulness vs. Global</div></div>
+        <div class="st"><div class="num">4,5×</div><div class="cap">Context Recall vs. Global</div></div>
+        <div class="st"><div class="num">0.899</div><div class="cap">höchste Relevance im Feld</div></div>
+      </div>
+    </div>
+
+    <h3 class="reveal">Detailergebnisse pro System</h3>
+    <p class="read reveal">Die vollständigen Metriken des XXS-Splits. Document Recall, Document Precision und Passage Recall sind nur für die Systeme verfügbar, die explizite Quell-Signale liefern.</p>
+    <figure class="tbl-fig reveal">
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Metrik</th>
+          <th class="num">Standard-RAG</th>
+          <th class="num">LightRAG</th>
+          <th class="num">GR · Global</th>
+          <th class="num">GR · Local</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>relevance</td><td class="num">0.806</td><td class="num">0.863</td><td class="num">0.857</td><td class="num best">0.899</td></tr>
+          <tr><td>correctness</td><td class="num">0.385</td><td class="num">0.492</td><td class="num best">0.535</td><td class="num">0.483</td></tr>
+          <tr><td>faithfulness</td><td class="num">0.674</td><td class="num best">0.986</td><td class="num">0.106</td><td class="num">0.373</td></tr>
+          <tr><td>context_recall</td><td class="num">0.443</td><td class="num best">0.712</td><td class="num">0.095</td><td class="num">0.429</td></tr>
+          <tr><td>document_recall</td><td class="num">0.747</td><td class="num best">0.776</td><td class="num">—</td><td class="num">—</td></tr>
+          <tr><td>document_precision</td><td class="num">0.602</td><td class="num best">0.686</td><td class="num">—</td><td class="num">—</td></tr>
+          <tr><td>passage_recall</td><td class="num best">0.755</td><td class="num">0.317</td><td class="num">0.365</td><td class="num">—</td></tr>
+          <tr><td>count (n)</td><td class="num">50</td><td class="num">50</td><td class="num">50</td><td class="num">50</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <figcaption class="tbl-cap"><span class="tnum">Tabelle 2</span><span>BioCDQA-XXS · alle Varianten · identisches LLM, Embedding &amp; Reranker · Bestwert je Zeile hervorgehoben</span></figcaption>
+    </figure>
+    <p class="read reveal" style="font-size:14px;color:var(--muted)">Konfigurationen: Standard-RAG mit Rerank und HyQE · LightRAG Mix Mode (Default) · GraphRAG Official im <code>fast</code>-Modus (NLP-Extraktion) mit 3.389 Communities, Map-Reduce, minimales Granularitätslevel · GraphRAG Local Search.</p>
+
+    <h3 class="reveal">Token-Verbrauch &amp; Latenz</h3>
+    <p class="read reveal">Die folgenden Werte vergleichen alle drei Pipelines auf <code>biocdqa-xxs</code> mit <code>gpt-oss-120b</code> über je 50 Queries. GraphRAG entspricht dem Local-Search-Lauf (Level L2), Standard-RAG dem Setup mit Reranker. Die End-to-End-Latenz umfasst Embedding, Retrieval und Antwortgenerierung; die Token-Werte sind die provider-abrechenbaren („billable") Ströme — der Eval-Overhead der LLM-Judges ist hier bewusst ausgeklammert.</p>
+    <div class="chart-card cmp reveal">
+      <div class="metric-row" data-chart>
+        <div class="mlabel"><span class="mname">Tokens pro Query</span><span class="mhint">logarithmische Skala · niedriger = besser</span></div>
+        <div class="bars">
+          <div class="bar-line"><span class="bn">LightRAG</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-light)" data-w="21.3"></div></div><span class="bv bestv">4.360</span></div>
+          <div class="bar-line"><span class="bn">GR-Local</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grl)" data-w="37.5"></div></div><span class="bv">13.375</span></div>
+          <div class="bar-line"><span class="bn">Standard</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-std)" data-w="61.5"></div></div><span class="bv">69.745</span></div>
+          <div class="bar-line"><span class="bn">GR-Global</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grg)" data-w="92.5"></div></div><span class="bv">595.705</span></div>
+        </div>
+      </div>
+      <div class="metric-row" data-chart>
+        <div class="mlabel"><span class="mname">Latenz · Median</span><span class="mhint">niedriger = besser</span></div>
+        <div class="bars">
+          <div class="bar-line"><span class="bn">LightRAG</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-light)" data-w="38.6"></div></div><span class="bv bestv">6,49 s</span></div>
+          <div class="bar-line"><span class="bn">GR-Local</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grl)" data-w="43.0"></div></div><span class="bv">7,23 s</span></div>
+          <div class="bar-line"><span class="bn">Standard</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-std)" data-w="56.1"></div></div><span class="bv">9,43 s</span></div>
+          <div class="bar-line"><span class="bn">GR-Global</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grg)" data-w="100"></div></div><span class="bv">16,8 s</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="callout reveal">
+      <div class="clbl">Hinweis · Latenz (gilt für alle Systeme)</div>
+      <p>Die Latenz ist <strong>stark providerabhängig</strong>: Bei Engpässen von Compute und Verfügbarkeit &#8212; auch unter Nutzung von OpenRouter &#8212; kann sie deutlich schwanken, und um diese Faktoren lässt sich kaum bereinigen. Die folgenden Latenzwerte (Tabelle 3 sowie die Median-Balken oben) sind daher eine <strong>indikative Momentaufnahme</strong>, keine stabile Systemeigenschaft. Die Token-Mengen sind davon unberührt und bleiben die belastbarere Vergleichsgröße.</p>
+    </div>
+    <figure class="tbl-fig reveal">
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Pipeline</th><th class="num">Avg</th><th class="num">Median</th><th class="num">P95</th><th class="num">P99</th></tr></thead>
+        <tbody>
+          <tr><td>Standard-RAG</td><td class="num">12,44 s</td><td class="num">9,43 s</td><td class="num">31,08 s</td><td class="num">39,65 s</td></tr>
+          <tr><td>LightRAG</td><td class="num best">7,86 s</td><td class="num best">6,49 s</td><td class="num">17,35 s</td><td class="num">19,85 s</td></tr>
+          <tr><td>GraphRAG Local</td><td class="num">8,21 s</td><td class="num">7,23 s</td><td class="num best">14,82 s</td><td class="num best">15,57 s</td></tr>
+          <tr><td>GraphRAG Global</td><td class="num">18,1 s</td><td class="num">16,8 s</td><td class="num">31,3 s</td><td class="num">33,4 s</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <figcaption class="tbl-cap"><span class="tnum">Tabelle 3</span><span>End-to-End-Latenz pro Query · n = 50 je Lauf · niedriger = besser · bei n = 50 sind P95/P99 von 1&#8211;3 Ausreissern getrieben und nicht robust</span></figcaption>
+    </figure>
+    <figure class="tbl-fig reveal">
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Pipeline · Strom</th><th class="num">Avg</th><th class="num">Median</th><th class="num">P95</th><th class="num">P99</th><th class="num">&#931; Run</th></tr></thead>
+        <tbody>
+          <tr><td>LightRAG &#183; billable total</td><td class="num best">4.360 tok</td><td class="num">4.455 tok</td><td class="num">5.295 tok</td><td class="num">5.453 tok</td><td class="num best">217.982 tok</td></tr>
+          <tr><td>GraphRAG Local &#183; Answer (LLM)</td><td class="num">13.375 tok</td><td class="num">13.428 tok</td><td class="num">14.289 tok</td><td class="num">14.741 tok</td><td class="num">668.768 tok</td></tr>
+          <tr class="sub"><td>&#8627; davon Input</td><td class="num">11.596 tok</td><td class="num">&#8212;</td><td class="num">&#8212;</td><td class="num">&#8212;</td><td class="num">579.809 tok</td></tr>
+          <tr class="sub"><td>&#8627; davon Output</td><td class="num">1.779 tok</td><td class="num">&#8212;</td><td class="num">&#8212;</td><td class="num">&#8212;</td><td class="num">88.959 tok</td></tr>
+          <tr><td>Standard-RAG &#183; billable total</td><td class="num">69.745 tok</td><td class="num">64.027 tok</td><td class="num">121.220 tok</td><td class="num">132.273 tok</td><td class="num">3.487.239 tok</td></tr>
+          <tr class="sub"><td>&#8627; davon Answer-LLM</td><td class="num">4.415 tok</td><td class="num">4.378 tok</td><td class="num">5.366 tok</td><td class="num">5.853 tok</td><td class="num">220.769 tok</td></tr>
+          <tr class="sub"><td>&#8627; davon Reranker-Input</td><td class="num">65.263 tok</td><td class="num">59.563 tok</td><td class="num">116.992 tok</td><td class="num">127.895 tok</td><td class="num">3.263.152 tok</td></tr>
+          <tr class="sub"><td>&#8627; davon Embedding-Input</td><td class="num">66 tok</td><td class="num">58 tok</td><td class="num">135 tok</td><td class="num">174 tok</td><td class="num">3.318 tok</td></tr>
+          <tr><td>GraphRAG Global &#183; billable total</td><td class="num">595.705 tok</td><td class="num">593.385 tok</td><td class="num">612.884 tok</td><td class="num">623.154 tok</td><td class="num">29.785.250 tok</td></tr>
+          <tr class="sub"><td>&#8627; davon Prompt</td><td class="num">585.496 tok</td><td class="num">584.651 tok</td><td class="num">592.488 tok</td><td class="num">592.531 tok</td><td class="num">29.274.800 tok</td></tr>
+          <tr class="sub"><td>&#8627; davon Output</td><td class="num">10.208 tok</td><td class="num">8.704 tok</td><td class="num">20.406 tok</td><td class="num">30.623 tok</td><td class="num">510.400 tok</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <figcaption class="tbl-cap"><span class="tnum">Tabelle 4</span><span>Billable Tokens pro Query und Summe über den Lauf · sortiert von günstig nach teuer · niedriger = besser · GraphRAG Global: ~48 LLM-Calls/Query, Σ = Avg &#215; 50</span></figcaption>
+    </figure>
+    <h4 class="reveal">LightRAG</h4>
+    <p class="read reveal"><strong>Mit &#216; 4.360 Tokens/Query ist LightRAG der günstigste Ansatz</strong> &#8212; rund <span class="accent">3&#215; weniger als GraphRAG Local</span> (13.375) und <span class="accent">16&#215; weniger als Standard-RAG</span> (69.745). Das Retrieval beruht auf Vektor- und Nachbarschafts-Lookups statt teurer Graph-Traversierung; die abrechenbaren Tokens entfallen im Wesentlichen auf die Query-Keyword-Extraktion und den kompakten Antwort-Prompt. Auch latenzseitig führt LightRAG: Median 6,49 s (&#216; 7,86 s) ist die niedrigste zentrale Latenz im Feld.</p>
+    <h4 class="reveal">GraphRAG Local</h4>
+    <p class="read reveal">GraphRAG Local liegt mit 13.375 Tokens/Query dazwischen und ist mit ~87 % Input-Anteil durch die vorberechneten Community-Reports getrieben. Sein eigentlicher Vorzug ist die Latenz-Stabilität: Bei Median 7,23 s (&#216; 8,21 s) besitzt es die <strong>engste Verteilung</strong> des Feldes &#8212; P95 14,82 s und P99 15,57 s bleiben deutlich unter LightRAGs Tails (17,35 s / 19,85 s). Für harte Latenz-SLAs ist das die vorhersehbarste Wahl.</p>
+    <h4 class="reveal">Standard-RAG</h4>
+    <p class="read reveal">Standard-RAGs scheinbar dramatische 69.745 Tokens/Query sind kein LLM-Problem: Das Antwortmodell verbraucht nur 4.415 Tokens, während der <strong>Reranker-Input mit 65.263 Tokens rund 94 % der Rechnung ausmacht</strong>. Pro Query werden also ~65k Tokens an Kandidaten durch den Reranker geschoben &#8212; ein Konfigurations-Kostentreiber, kein architektureller Zwang. Derselbe große Kandidatenstapel schlägt zudem direkt auf die <strong>Latenz</strong> durch: Der Reranking-Schritt ist der dominante Beitrag zu Standard-RAGs schwacher Latenz &#8212; Median 9,43 s, und mit P95 31,08 s / P99 39,65 s die schlechtesten Tails der vollständig gemessenen Läufe. Ein kleineres Kandidatenfenster würde damit <em>beides</em> entlasten, Token-Kosten <em>und</em> Latenz, ohne notwendigerweise die Antwortqualität zu treffen.</p>
+    <h4 class="reveal">GraphRAG Global</h4>
+    <p class="read reveal"><strong>GraphRAG Global</strong> sprengt diesen Rahmen vollständig. Eine einzige Global-Query kostet <strong>~596.000 Tokens über 48 LLM-Calls</strong> &#8212; rund <span class="accent">45&#215; mehr als GraphRAG Local</span> und <span class="accent">~9&#215; mehr als Standard-RAG</span>; über den 50-Query-Lauf summiert sich das auf <strong>~29,8 Mio. Tokens</strong>. Der Grund liegt im Map-Reduce-Mechanismus: Zur Anfragezeit werden faktisch alle vorberechneten Community-Reports batchweise durch das LLM geschoben (~98 % der Tokens sind Prompt-Input). Auch latenzseitig ist Global mit Median 16,8 s der langsamste Modus &#8212; rund doppelt so langsam wie LightRAG oder GraphRAG Local, allerdings mit einem stabileren Tail (P99 33,4 s) als das ausreißeranfällige Standard-RAG (39,65 s).</p>
+    <p class="read reveal">Auf Query-Ebene ordnet sich das Feld nach Token-Volumen klar: LightRAG (4.360) &#8810; GraphRAG Local (13.375) &#8810; Standard-RAG (69.745, reranker-dominiert) &#8810; GraphRAG Global (595.705). Die Median-Latenz folgt derselben Reihung &#8212; mit der Ausnahme der Tails, wo GraphRAG Local trotz höherer Token-Last die engste Verteilung hält. Ob diese Query-Kosten den jeweiligen Indexierungsaufwand rechtfertigen, entscheidet sich erst in der Total-Cost-Betrachtung; die beiden Posten verhalten sich, wie der nächste Abschnitt zeigt, spiegelbildlich.</p>
+
+    <h3 class="reveal">Ingestion: einmalige Indexierungskosten</h3>
+    <p class="read reveal">Die Query-Zeit ist nur die halbe Rechnung. Die einmalige Indexierung fällt je System sehr unterschiedlich aus &#8212; und entgegen der Intuition ist die leichtgewichtige Graph-Variante hier <em>nicht</em> günstig. Der direkte Vergleich der drei Indizes (der GraphRAG-Index dient sowohl Local als auch Global):</p>
+    <div class="chart-card cmp reveal">
+      <div class="metric-row" data-chart>
+        <div class="mlabel"><span class="mname">Ingestion · Tokens (einmalig)</span><span class="mhint">niedriger = besser · o200k-vergleichbar</span></div>
+        <div class="bars">
+          <div class="bar-line"><span class="bn">Standard</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-std)" data-w="29.9"></div></div><span class="bv bestv">7,5 M</span></div>
+          <div class="bar-line"><span class="bn">LightRAG</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-light)" data-w="82.9"></div></div><span class="bv">20,8 M</span></div>
+          <div class="bar-line"><span class="bn">GraphRAG</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grg)" data-w="100"></div></div><span class="bv">25,1 M</span></div>
+        </div>
+      </div>
+    </div>
+    <h4 class="reveal">Microsoft GraphRAG</h4>
+    <p class="read reveal">GraphRAGs Indexierung von <code>biocdqa-xxs</code> lief im <code>fast</code>-Modus &#8212; LLM <code>gpt-oss-120b</code>, Embeddings <code>qwen3-embedding-8b</code>, echte Provider-Token aus dem GraphRAG-Log.</p>
+    <figure class="tbl-fig reveal">
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Kennzahl</th><th>Wert</th></tr></thead>
+        <tbody>
+          <tr><td>Wall-Clock (gesamt)</td><td>7.678,6 s (&#8776; 2 h 08 min)</td></tr>
+          <tr><td>Tokens gesamt</td><td>25.063.330 Tok</td></tr>
+          <tr><td>LLM-Calls gesamt</td><td>4.688 (3.389 LLM + 1.299 Embedding)</td></tr>
+          <tr><td>Dokumente</td><td>52</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <figcaption class="tbl-cap"><span class="tnum">Tabelle 5</span><span>GraphRAG-Ingestion · biocdqa-xxs · fast-Modus · &#220;berblick</span></figcaption>
+    </figure>
+    <figure class="tbl-fig reveal">
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Modell</th><th>Rolle</th><th class="num">Requests</th><th class="num">Prompt-Tok</th><th class="num">Completion-Tok</th><th class="num">Total-Tok</th></tr></thead>
+        <tbody>
+          <tr><td>gpt-oss-120b</td><td>LLM (Community-Reports)</td><td class="num">3.389</td><td class="num">16.649.026</td><td class="num">4.652.201</td><td class="num">21.301.227</td></tr>
+          <tr><td>qwen3-embedding-8b</td><td>Embeddings</td><td class="num">1.299</td><td class="num">3.762.103</td><td class="num">&#8212;</td><td class="num">3.762.103</td></tr>
+          <tr class="total"><td>Gesamt</td><td></td><td class="num">4.688</td><td class="num">20.411.129</td><td class="num">4.652.201</td><td class="num">25.063.330</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <figcaption class="tbl-cap"><span class="tnum">Tabelle 6</span><span>Tokens &amp; Calls nach Modell · &#216;/Response: LLM 4,57 s &amp; 6.285 Tok, Embeddings 4,91 s &amp; 2.896 Tok · Retries: LLM 51 (1,5 %), Embeddings 0</span></figcaption>
+    </figure>
+    <figure class="tbl-fig reveal">
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Workflow</th><th class="num">Dauer</th><th class="num">Anteil</th></tr></thead>
+        <tbody>
+          <tr><td>create_community_reports_text (LLM)</td><td class="num">4.701,4 s</td><td class="num">61,2 %</td></tr>
+          <tr><td>generate_text_embeddings</td><td class="num">2.765,9 s</td><td class="num">36,0 %</td></tr>
+          <tr><td>extract_graph_nlp (NLP, keine LLM-Token)</td><td class="num">100,4 s</td><td class="num">1,3 %</td></tr>
+          <tr><td>finalize_graph</td><td class="num">66,0 s</td><td class="num">0,9 %</td></tr>
+          <tr><td>create_final_text_units</td><td class="num">28,0 s</td><td class="num">0,4 %</td></tr>
+          <tr><td>create_communities</td><td class="num">10,0 s</td><td class="num">0,1 %</td></tr>
+          <tr><td>prune_graph</td><td class="num">4,4 s</td><td class="num">0,1 %</td></tr>
+          <tr><td>create_base_text_units</td><td class="num">2,4 s</td><td class="num">&lt;0,1 %</td></tr>
+          <tr><td>create_final_documents</td><td class="num">0,1 s</td><td class="num">&lt;0,1 %</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <figcaption class="tbl-cap"><span class="tnum">Tabelle 7</span><span>Phasen-Timing (stats.json) · &#931; Compute-Zeit 21.873 s, nebenläufig &#8594; größer als Wall-Clock</span></figcaption>
+    </figure>
+    <figure class="tbl-fig reveal">
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Tabelle</th><th class="num">Zeilen</th></tr></thead>
+        <tbody>
+          <tr><td>documents</td><td class="num">52</td></tr>
+          <tr><td>text_units (Chunks)</td><td class="num">1.828</td></tr>
+          <tr><td>entities</td><td class="num">13.422</td></tr>
+          <tr><td>relationships</td><td class="num">488.516</td></tr>
+          <tr><td>communities</td><td class="num">3.389</td></tr>
+          <tr><td>community_reports</td><td class="num">3.352</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <figcaption class="tbl-cap"><span class="tnum">Tabelle 8</span><span>Index-Output · Zeilen je GraphRAG-Tabelle</span></figcaption>
+    </figure>
+    <p class="read reveal">GraphRAGs einmalige Indexierung verbrauchte <strong>25,06 Mio. Tokens</strong> und <strong>2 h 08 min Wall-Clock</strong> &#8212; für gerade <strong>52 Dokumente</strong> (~482k <em>Indexierungs</em>-Tokens pro Dokument, also rund das 23-Fache der reinen Dokumentgröße von ~21k Tokens). Zur Einordnung: Das entspricht rund <span class="accent">1.870 GraphRAG-Antworten</span> (&#216; ~13.375 Tokens). Auf dem 50-Query-Eval ist die Indexierung damit etwa <span class="accent">37&#215;</span> teurer als die gesamte Query-Last (25,06 M gegenüber 0,67 M Tokens).</p>
+    <p class="read reveal">Die LLM-Last (21,3 M der 25 M Tokens) geht fast vollständig in die <strong>Community-Report-Generierung</strong>: 3.389 LLM-Calls decken sich ~1:1 mit den 3.352 erzeugten Reports und machen 61 % der Laufzeit aus. Bemerkenswert ist, dass dies der <code>fast</code>-Modus ist, in dem die Entity/Relation-Extraktion per NLP läuft (100 s, 0 LLM-Tokens). Selbst ohne LLM-Extraktion bleibt die Indexierung also teuer &#8212; der Kostentreiber sind nicht die Entitäten, sondern die Reports. Die Embeddings (3,76 M Tokens) stellen die restlichen 36 % der Zeit.</p>
+    <p class="read reveal">Auffällig ist die Graphdichte: Aus 52 Dokumenten entstehen <strong>13.422 Entitäten und 488.516 Relationen</strong> &#8212; rund 9.400 Relationen pro Dokument. Diese Explosion erklärt die 3.389 Communities und einen Großteil der Kosten und deutet auf einen sehr dichten, im fast-Modus per NLP über-generierten Graphen hin. Ob diese Dichte der Antwortqualität nützt oder primär Rauschen erzeugt, ist offen &#8212; GraphRAGs schwache Faithfulness (Tabelle 2) spricht eher für Letzteres.</p>
+    <h4 class="reveal">Standard-RAG</h4>
+    <p class="read reveal">Die Standard-RAG-Indexierung (HyQE-Variante) wurde post-hoc und deterministisch aus dem bestehenden Index geschätzt (Tokenizer o200k_base).</p>
+    <figure class="tbl-fig reveal">
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Komponente</th><th>Pass</th><th class="num">Token</th></tr></thead>
+        <tbody>
+          <tr><td>Embedding (qwen3-embedding-8b)</td><td>Semantic Chunker (Sätze)</td><td class="num">~2.304.673</td></tr>
+          <tr class="sub"><td></td><td>Chunk-Storage (alle Chunks 1&#215;)</td><td class="num">2.304.673</td></tr>
+          <tr class="sub"><td></td><td>HyQE-Fragen</td><td class="num">224.099</td></tr>
+          <tr class="subtot"><td></td><td>Embedding gesamt</td><td class="num">~4.833.445</td></tr>
+          <tr><td>HyQE-LLM (gpt-oss-120b small)</td><td>Input (Prompt 68 + Chunk)</td><td class="num">2.458.693</td></tr>
+          <tr class="sub"><td></td><td>Output (Fragen-Token)</td><td class="num">224.099</td></tr>
+          <tr class="subtot"><td></td><td>HyQE-LLM gesamt</td><td class="num">2.682.792</td></tr>
+          <tr class="total"><td>Gesamt</td><td></td><td class="num">~7.516.237</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <figcaption class="tbl-cap"><span class="tnum">Tabelle 9</span><span>Standard-RAG-Ingestion (mit HyQE) · biocdqa-xxs · 2.265 Chunks, 5.788 HyQE-Fragen (~2,6/Chunk) · tokens_source = tokenizer_estimate</span></figcaption>
+    </figure>
+    <p class="read reveal">Das korrigiert eine naheliegende Fehlannahme: <strong>Standard-RAGs Indexierung ist nicht LLM-frei.</strong> Das HyQE-Verfahren erzeugt pro Chunk hypothetische Fragen und verursacht damit <strong>2,68 M LLM-Tokens</strong> &#8212; rund ein Drittel der ~7,5 M Gesamtkosten. Mit ~7,5 M bleibt Standard-RAG dennoch klar unter GraphRAGs ~25,06 M (<span class="accent">~3,3&#215; weniger</span>). Der Embedding-Posten enthält dabei zwei Pässe über den Korpus. Der <code>SemanticChunker</code> (langchain-experimental) bettet zunächst <strong>überlappende 3-Satz-Fenster</strong> ein (<code>buffer_size = 1</code>: je Satz das Fenster aus Vorgänger, Satz und Nachfolger), um über die Cosinus-Distanz benachbarter Fenster die semantischen Breakpoints zu finden; jeder Token landet so in ~3 Fenstern, weshalb dieser Pass ein Mehrfaches der reinen Korpusgröße embedded. Anschließend werden die finalen Chunks für die Qdrant-Speicherung einmal eingebettet. In Summe liegen die ~4,8 M Embedding-Tokens damit bei rund dem <strong>Vierfachen</strong> des ~1,1-M-Rohkorpus &#8212; methodisch erwartbar und kein Fehler, sondern der Preis des semantischen gegenüber festem Chunking. Die 5.788 HyQE-Fragen liegen mit ~2,6/Chunk rund 15 % unter dem Ziel von 3, vermutlich durch HyQE-Failures.</p>
+    <h4 class="reveal">LightRAG</h4>
+    <p class="read reveal">Die LightRAG-Indexierung liefert als einzige der drei provider-gemessene Token (qwen3 meldet Usage); zur Vergleichbarkeit mit Tabelle 5 und 9 ist zusätzlich eine o200k-Schätzung ausgewiesen.</p>
+    <figure class="tbl-fig reveal">
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Komponente</th><th class="num">nativ (Provider)</th><th class="num">o200k (vergleichbar)</th></tr></thead>
+        <tbody>
+          <tr><td>LLM-Extraktion</td><td class="num">22.402.305</td><td class="num">16.511.883</td></tr>
+          <tr><td>Embedding</td><td class="num">4.543.329</td><td class="num">4.274.054</td></tr>
+          <tr class="total"><td>&#931; billable</td><td class="num">26.945.634</td><td class="num">20.785.937</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <figcaption class="tbl-cap"><span class="tnum">Tabelle 10</span><span>LightRAG-Ingestion · biocdqa-xxs · 2.558 chat- + 68.804 embedding-Calls · chat-Latenz &#216; 11,0 s (p99 48,6 s) · Wall-Clock ~60 min (47 saubere Docs) / ~106 min inkl. hängendem Tail · embedding_tokens_source = measured_provider</span></figcaption>
+    </figure>
+    <p class="read reveal">Damit fällt die letzte Annahme: <strong>LightRAGs Indexierung ist nicht das leichtgewichtige Gegenstück, als das der Name sie nahelegt.</strong> Mit 20,79 M Tokens (o200k, vergleichbar erhoben) liegt sie nur knapp unter GraphRAGs 25,06 M und rund <span class="accent">2,8&#215; über Standard-RAG</span> (7,52 M); auf nativer Provider-Basis übertrifft sie mit 26,95 M sogar GraphRAG. Der Treiber ist dieselbe LLM-Last wie dort: Entity- und Relation-Extraktion samt Profiling kostet 22,4 M Tokens nativ (Prompt 13,03 M / Completion 9,37 M) über 2.558 Chat-Calls &#8212; die hohe Completion-Last spiegelt die generierten Beschreibungen. Konkret umfasst der einmalige Index 22,4 M LLM- und 4,5 M Embedding-Tokens (nativ) bei ~60 min Wall-Clock für die 47 sauberen Dokumente (~106 min inkl. hängendem Tail).</p>
+    <p class="read reveal">Daraus ergibt sich der eigentliche Total-Cost-Trade zwischen Indexierung und Query-Zeit, der die beiden günstigsten Systeme spiegelbildlich macht. <strong>Standard-RAG</strong> ist billig zu indexieren (7,52 M), aber teuer pro Query (69.745 Tok); <strong>LightRAG</strong> ist teuer zu indexieren (20,79 M), aber mit Abstand am günstigsten pro Query (4.360 Tok). Die teure Indexierung amortisiert sich also über das Anfragevolumen &#8212; die folgende Total-Cost-Betrachtung rechnet das über alle vier Varianten konkret durch.</p>
+    <p class="read reveal">Das schärft das Argument für LightRAGs <strong>inkrementelle Updates</strong>: Gerade weil ein vollständiger Index teuer ist (~21 M Tokens), zählt es, ihn bei neuen Dokumenten nicht komplett neu aufbauen zu müssen &#8212; anders als bei GraphRAG, dessen Community-Struktur bei nennenswerten Änderungen neu berechnet wird. GraphRAG bleibt damit das ungünstigste Gesamtprofil: ähnlich teure Indexierung wie LightRAG, aber zusätzlich die teuersten Queries (Global) bzw. nur moderate Einsparungen bei schwächerem Grounding (Local). Zur Mess-Asymmetrie: LightRAGs Ingestion ist mit measured_provider die am saubersten erhobene der drei, GraphRAG ist log-geparst, Standard-RAG geschätzt &#8212; die o200k-Spalte stellt die Vergleichsbasis her.</p>
+
+    <h3 class="reveal">Total Cost of Ownership</h3>
+    <p class="read reveal">Erst Ingestion und Query-Zeit zusammen ergeben das wahre Kostenbild. Die folgende Tabelle führt beide Posten für alle vier Varianten zusammen und rechnet sie auf zwei Betriebspunkte hoch &#8212; 50 Queries (Eval-Größe) und 5.000 Queries (Produktivnähe).</p>
+    <figure class="tbl-fig reveal">
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>System</th><th class="num">Ingestion (einmalig)</th><th class="num">pro Query</th><th class="num">&#931; @ 50 Queries</th><th class="num">&#931; @ 5.000 Queries</th></tr></thead>
+        <tbody>
+          <tr><td>Standard-RAG</td><td class="num best">7,5 M</td><td class="num">69.745</td><td class="num best">11,0 M</td><td class="num">356 M</td></tr>
+          <tr><td>LightRAG</td><td class="num">20,8 M</td><td class="num best">4.360</td><td class="num">21,0 M</td><td class="num best">42,6 M</td></tr>
+          <tr><td>GraphRAG Local</td><td class="num">25,1 M</td><td class="num">13.375</td><td class="num">25,7 M</td><td class="num">91,9 M</td></tr>
+          <tr><td>GraphRAG Global</td><td class="num">25,1 M</td><td class="num">595.705</td><td class="num">54,8 M</td><td class="num">~3,0 Mrd</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <figcaption class="tbl-cap"><span class="tnum">Tabelle 11</span><span>Total Cost of Ownership in Tokens · &#931; = Ingestion + Queries &#215; Tok/Query · Ingestion o200k-vergleichbar (GraphRAG log-basiert) · Bestwert je Spalte hervorgehoben</span></figcaption>
+    </figure>
+    <div class="callout reveal">
+      <div class="clbl">Lesart · Token-Volumen, nicht Preis</div>
+      <p>Alle Summen sind <strong>rohe billable Tokens</strong> und aggregieren bewusst heterogene Ströme: Reranker-Input (Standard-RAG), LLM-Prompt/Completion und Embeddings zählen hier gleich. Standard-RAGs Gesamtwert ist zu ~94 % reranker-getriebener Input &#8212; ein über die Kandidaten-Fenstergröße <strong>tunbarer Konfigurationsposten</strong>, kein architektureller Zwang. Die Rangfolge ist damit eine <strong>Volumen</strong>-Rangfolge unter der aktuellen Konfiguration; verkleinert man Standard-RAGs Fenster, sinkt dessen Query-Volumen und der Break-even verschiebt sich entsprechend. Eine streamgewichtete Betrachtung bleibt Future Work (Abschnitt 04).</p>
+    </div>
+    <p class="read reveal">Das Ergebnis ist volumenabhängig und spiegelbildlich. Bei <strong>50 Queries</strong> führt Standard-RAG mit 11,0 M Tokens, weil seine billige Indexierung dominiert; bei <strong>5.000 Queries</strong> ist LightRAG mit 42,6 M das günstigste System, während Standard-RAG durch den reranker-getriebenen Query-Aufwand auf 356 M steigt &#8212; der Break-even liegt bei rund <span class="accent">200 Queries</span>. GraphRAG Local bleibt durchgehend teurer als LightRAG (höhere Indexierung <em>und</em> höhere Query-Kosten), und GraphRAG Global ist auf jedem Betriebspunkt das mit Abstand teuerste System &#8212; bei 5.000 Queries im Milliardenbereich.</p>
+    <p class="read reveal">Welche Architektur diese Volumenkurven in eine Empfehlung übersetzen, behandelt die Diskussion (Abschnitt 04) entlang von Qualität, Grounding und Betriebsprofil &#8212; die Entscheidungsmatrix (Abschnitt 05) führt es pro Szenario zusammen.</p>
+  </div>
+</section>
+
+<!-- DISKUSSION -->
+<section class="block" id="diskussion">
+  <div class="wrap">
+    <div class="sec-no reveal">04 — Diskussion</div>
+    <h2 class="reveal">Einordnung der Ergebnisse</h2>
+    <p class="read reveal">Die XXS-Ergebnisse sind keine abschließende Rangfolge, sondern eine erste indikative Messung unter kontrollierten Bedingungen. Dennoch zeichnen sich bereits auf dem kleinsten Split klare Systemcharakteristika ab. Die folgende Einordnung gewichtet zunächst die Antwort- und Retrieval-Qualität; Kosten und Latenz aus Abschnitt 03 fließen anschließend in die Entscheidungsmatrix ein.</p>
+
+    <blockquote class="reveal">Eine hohe Correctness ist das primäre Ziel aus Nutzersicht — reicht zur Bewertung eines RAG-Systems allein aber nicht aus. RAG soll richtige Antworten <em>aus den bereitgestellten Quellen</em> ableiten.</blockquote>
+
+    <h3 class="reveal">LightRAG — stärkste Gesamtbalance</h3>
+    <p class="read reveal">LightRAG zeigt die stärkste Gesamtleistung: höchste Faithfulness (<span class="accent">0.986</span>), bester Context Recall (0.712) und eine Correctness (0.492) deutlich über der Baseline. Das System stellt nicht nur relevante Kontexte bereit, sondern nutzt sie auch besonders konsistent. Auffällig ist der niedrige Passage Recall (0.317): LightRAG trifft seltener exakt die Gold-Passagen, erzeugt aber dennoch gut kontextgestützte Antworten — ein Hinweis auf stärkere semantische bzw. strukturierte Kontextaggregation. Bei größeren, stärker verrauschten Splits könnte die fehlende exakte Passageabdeckung jedoch zum Risiko werden.</p>
+
+    <h3 class="reveal">Standard-RAG — bester expliziter Retriever</h3>
+    <p class="read reveal">Die Baseline liefert die stärksten expliziten Retrieval-Signale: Document Recall 0.747, Document Precision 0.602 und Passage Recall <span class="accent">0.755</span>. Sie findet die richtigen Dokumente und Passagen, bleibt aber mit einer Correctness von 0.385 hinter LightRAG zurück. Die Schwäche liegt also nicht im Auffinden der Evidenz, sondern in deren Nutzung für die finale Antwortsynthese — wahrscheinliche Ursachen: Chunk-Zuschnitt, Kontextkomposition nach dem Reranking, Anzahl übergebener Passagen oder das Antwortprompting.</p>
+
+    <h3 class="reveal">Microsoft GraphRAG — vom Grounding-Problem zur Zweitkandidatur</h3>
+    <p class="read reveal">Im globalen Map-Reduce-Modus erzielt GraphRAG den höchsten Correctness-Wert des Feldes (0.535) — der Vorsprung gegenüber LightRAG (0.492) ist mit 0.043 Punkten etwas deutlicher, auf n = 50 aber weiterhin nicht belastbar. Gleichzeitig brechen Faithfulness (0.106) und Context Recall (0.095) regelrecht ein: Die korrekten Antworten sind kaum durch den als Kontext gewerteten Input gedeckt. Diese Divergenz — höchste Korrektheit bei zugleich schlechtestem Grounding des Feldes — lässt mindestens zwei konkurrierende Erklärungen zu, die der XXS-Split nicht trennen kann:</p>
+    <div class="kbox reveal">
+      <div class="k"><div class="kt">H1 · Parametrisches Leakage</div><p>Das Modell antwortet überwiegend aus internem Wissen statt aus den retrievten Community-Reports. Dann wären die korrekten Antworten tatsächlich nicht gegroundet — für reguliertes QA das ungünstigste Profil.</p></div>
+      <div class="k"><div class="kt">H2 · Mess-Artefakt</div><p>Faithfulness/Context-Recall messen die Überlappung der Antwort mit dem <em>bereitgestellten</em> Kontext. Bei Global ist dieser Kontext eine stark abstrahierte Map-Reduce-Synthese vorberechneter Reports, nicht der Quelltext — eine korrekt abgeleitete Antwort kann so niedrig scoren, ohne ungegroundet zu sein.</p></div>
+    </div>
+    <p class="read reveal">Beide Hypothesen sind mit den Daten vereinbar; der niedrige Context Recall (0.095) allein entscheidet nicht zwischen ihnen. Erschwerend ist die <strong>Judge-Konfiguration</strong>: Bewerter und Generator sind dasselbe Modell (<code>gpt-oss-120b</code>), sodass Self-Preference-Bias die Correctness systematisch zugunsten der eigenen Outputs verschieben kann — und zwar gerade dort, wo H1 ein Grounding-Defizit unterstellt. Eine saubere Trennung erfordert (a) ein <em>unabhängiges</em> Judge-Modell und (b) eine Faithfulness-Messung gegen den <em>Quelltext</em> statt gegen die Report-Synthese. Bis dahin gilt unabhängig von der zutreffenden Hypothese: Eine Antwort, deren Herkunft sich nicht gegen die Quellen verifizieren lässt, ist für biomedizinische Auditierbarkeit schwer vertretbar.</p>
+    <p class="read reveal">Der <strong>Local-Search-Modus</strong> verschiebt dieses Bild deutlich. Faithfulness (0.373) und Context Recall (0.429) liegen rund 3,5× bzw. 4,5× über dem globalen Modus, und die Relevance (0.899) ist die höchste im gesamten Feld — bei nahezu identischer Correctness (0.483 vs. 0.535). Damit ist der ursprüngliche Vorbehalt teilweise entkräftet: GraphRAGs Grounding-Schwäche war eine Eigenschaft des globalen Antwortmechanismus, nicht der Graph-Architektur. Dennoch bleibt Local Search beim entscheidenden Grounding klar hinter LightRAG (Faithfulness 0.373 vs. 0.986; Context Recall 0.429 vs. 0.712).</p>
+
+    <div class="kbox reveal">
+      <div class="k"><div class="kt">LightRAG → Lead-Kandidat</div><p>Beste Qualitätsbalance, günstigste Queries und niedrigste Median-Latenz. Teure Indexierung, die sich ab ~200 Queries amortisiert. Erste Wahl für Volumen- und Dauerbetrieb.</p></div>
+      <div class="k"><div class="kt">Standard-RAG → robuste Baseline</div><p>Stärkster expliziter Retriever und billigste Indexierung, aber teuerste Queries (Reranker ~94 % der Token <em>und</em> dominanter Latenztreiber). Optimal für kleine, statische Korpora &#8212; Kandidatenfenster verkleinern, Antwortsynthese gezielt verbessern.</p></div>
+      <div class="k"><div class="kt">GraphRAG Local → Spezialfall</div><p>Engste Latenzverteilung im Feld, beste Relevance. Aber teure Indexierung wie GraphRAG und Grounding unter LightRAG &#8212; gerechtfertigt v. a. bei harten Latenz-SLAs.</p></div>
+      <div class="k"><div class="kt">GraphRAG Global → nachrangig</div><p>Schwächstes Grounding und mit ~596k Tok/Query der teuerste Modus. Nur für echte corpusweite Sensemaking-Fragen, nicht für faktisches QA.</p></div>
+    </div>
+
+    <h3 class="reveal">Wissenschaftliche Lücken</h3>
+    <p class="read reveal">Die Aussagekraft ist durch die kleine Stichprobe (n = 50) und die Beschränkung auf den XXS-Split limitiert. Skalierungseffekte über zunehmenden Noise-Anteil, mehrere Quelldokumente pro Frage und größere Korpora sind noch offen. Insbesondere die Frage, ob LightRAGs niedriger Passage Recall bei höherem Noise zum Problem wird und ob GraphRAG Local seine Relevance-Stärke hält, lässt sich auf XXS nicht beantworten. Hinzu kommen zwei methodische Vorbehalte: Die Bewertung erfolgt per LLM-as-a-judge mit demselben Modell (gpt-oss-120b), das auch die Antworten erzeugt &#8212; ein bekanntes Bias-Risiko; und die Kostendaten der drei Systeme wurden auf leicht unterschiedlichen Mess-Basen (provider-gemessen, log-geparst, geschätzt) erhoben. Schließlich wurde LightRAG nur im Mix-Modus (Dual-Level) gemessen &#8212; die reinen Local- und Global-Modi von LightRAG sind ungetestet, obwohl gerade ein LightRAG-Global ein günstigerer Gegenspieler zu GraphRAG Global sein könnte.</p>
+
+    <h3 class="reveal">Future Work</h3>
+    <ul class="fw reveal">
+      <li><b>Skalierung auf XS–M</b> — Kosten zunächst auf die vielversprechendsten Kandidaten (LightRAG, GraphRAG Local) konzentrieren, bevor größere Splits erhoben werden.</li>
+      <li><b>Standard-RAG-Synthese optimieren</b> — Chunk-Zuschnitt, Kontextkomposition nach Reranking und Antwortprompting verbessern, um den Gap zwischen starkem Retrieval und schwacher Correctness zu schließen.</li>
+      <li><b>GraphRAG Local vertiefen</b> — Granularitätslevel, lokale Suchparameter und Quellenbindung systematisch variieren, um Faithfulness Richtung LightRAG-Niveau zu treiben.</li>
+      <li><b>GraphRAG-Global-Grounding disambiguieren</b> — mit unabhängigem Judge-Modell und Faithfulness gegen den Quelltext (statt gegen die Report-Synthese) trennen, ob das schwache Grounding parametrisches Leakage (H1) oder ein Mess-Artefakt abstraktiver Kontexte (H2) ist.</li>
+      <li><b>LightRAG Passage-Coverage</b> — Untersuchen, ob niedriger Passage Recall bei stärker verrauschten Korpora die Antwortqualität gefährdet.</li>
+      <li><b>Kostenanalyse skalieren</b> — das auf XXS erhobene Ingestion-, Token- und Latenzprofil (Tab. 3–11) auf größere Tiers ausweiten und die Total-Cost-Kurven über echtem Noise validieren.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ENTSCHEIDUNGSMATRIX -->
+<section class="block" id="entscheidung">
+  <div class="wrap">
+    <div class="sec-no reveal">05 — Entscheidungsmatrix</div>
+    <h2 class="reveal">Welche Architektur für welchen Fall?</h2>
+    <p class="read reveal">Die Messdaten zeigen keinen universellen Sieger, sondern klare Eignungsprofile. Die folgende Matrix übersetzt Qualität, Kosten und Latenz in eine Empfehlung pro Einsatzszenario &#8212; gültig für das hier getestete Factoid-QA auf biomedizinischen Volltexten und unter dem Vorbehalt des kleinen XXS-Splits.</p>
+    <div class="callout reveal">
+      <div class="clbl">Wichtig · Kein No-Go gegen GraphRAG aus diesen Daten</div>
+      <p>Die Kostenaussagen (Tokens, Latenz, Break-even) sind deterministisch gemessen und entscheidungsreif. Der <strong>Qualitätsteil</strong> wurde dagegen ausschließlich auf dem <strong>zero-noise XXS-Split</strong> erhoben &#8212; also genau in dem Regime, in dem graphbasierte Struktur ihren Mehrwert <em>nicht</em> ausspielen kann: Der Sinn von Entity-/Relation-Graphen liegt im verrauschten und mehrhopfigen Retrieval, das hier noch gar nicht vorkommt. Die GraphRAG-Qualitätszahlen sind daher <strong>hypothesen-, nicht entscheidungsreif</strong>; ein No-Go gegen die Graph-Architektur wäre auf dieser Basis verfrüht. Die Matrix ordnet ein, welche Kandidaten einen tieferen Blick auf XS&#8211;M verdient haben &#8212; sie spricht kein abschließendes Architektur-Urteil.</p>
+    </div>
+    <figure class="tbl-fig reveal">
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Szenario / Anforderung</th><th>Empfehlung</th><th>Begründung</th></tr></thead>
+        <tbody>
+          <tr><td>Hohes Anfragevolumen / Dauerbetrieb</td><td><strong>LightRAG</strong></td><td>Günstigste Query-Kosten (4.360 Tok) amortisieren die teure Indexierung &#8212; ab ~200 Queries das billigste System überhaupt.</td></tr>
+          <tr><td>Maximales Grounding &amp; Auditierbarkeit (Pharma, Recht, Medizin)</td><td><strong>LightRAG</strong></td><td>Höchste Faithfulness (0.986) und Context Recall (0.712): Antworten sind am stärksten durch die Quellen gedeckt.</td></tr>
+          <tr><td>Dynamischer / wachsender Korpus</td><td><strong>LightRAG</strong></td><td>Inkrementelle Updates vermeiden die teure Neu-Indexierung; GraphRAG müsste die Community-Struktur neu berechnen.</td></tr>
+          <tr><td>Geringes Volumen (&lt; ~200 Queries), stabiler Korpus</td><td><strong>Standard-RAG</strong></td><td>Billigste Indexierung (7,5 M) dominiert die Gesamtbilanz; Kandidatenfenster vorher verkleinern, um Query-Kosten und Latenz zu senken.</td></tr>
+          <tr><td>Stärkste explizite Quellen-/Passagentreffer (Zitatpflicht)</td><td><strong>Standard-RAG</strong></td><td>Bester Document Recall (0.747) und Passage Recall (0.755) &#8212; findet die exakten Belege am zuverlässigsten.</td></tr>
+          <tr><td>Harte Latenz-SLA (enge P95/P99)</td><td><strong>GraphRAG Local</strong></td><td>Engste Latenzverteilung (P95 14,82 s / P99 15,57 s) ohne Ausreißer-Tail &#8212; vorhersehbarste Antwortzeit.</td></tr>
+          <tr><td>Corpusweite Sensemaking-/Themenfragen (kein Factoid)</td><td><strong>GraphRAG Global</strong></td><td>GraphRAG Global aggregiert per Map-Reduce <em>erschöpfend</em> über alle Community-Reports &#8212; das auf Breitensynthese ausgelegte Verfahren. LightRAGs Global-Modus arbeitet dagegen selektiv (top-k) und wurde hier nicht gemessen. Vertretbar nur bei ~596k Tok/Query und schwachem Grounding.</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <figcaption class="tbl-cap"><span class="tnum">Tabelle 12</span><span>Entscheidungsmatrix · Empfehlung je Szenario auf Basis von Qualität (Tab. 2), Kosten (Tab. 11) und Latenz (Tab. 3)</span></figcaption>
+    </figure>
+    <p class="read reveal">Für den praktischen Regelfall &#8212; ein wachsender Wissensbestand, anhaltendes Anfragevolumen und der Anspruch auf nachvollziehbare, quellengestützte Antworten &#8212; ist <strong>LightRAG die Standardwahl</strong>. Standard-RAG bleibt die pragmatische Option für kleine, statische Korpora mit wenigen Anfragen; <strong>GraphRAG Local</strong> ist der Spezialfall für latenzkritische Anwendungen, <strong>GraphRAG Global</strong> der Nischenfall für corpusweites Sensemaking. Die ursprüngliche Leitfrage &#8212; ob graphgestützte Architekturen ihren Mehraufwand rechtfertigen &#8212; lässt sich damit differenziert beantworten: <em>ja, aber nur die leichtgewichtige Graph-Variante und erst ab hinreichendem Anfragevolumen.</em></p>
+    <p class="read reveal" style="font-size:14px;color:var(--muted)">Diese Empfehlungen gelten unter den dokumentierten Einschränkungen: n = 50, XXS-Split ohne Distraktoren, teils aus unterschiedlichen Läufen erhoben, LLM-as-a-judge mit demselben Modell wie die Generierung. Mit zunehmendem Noise und größeren Korpora kann sich insbesondere die Bewertung von LightRAGs niedrigem Passage Recall (0.317) verschieben.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <a href="https://thinktecture.com" class="tt-logo tt-logo--foot" aria-label="Thinktecture"><svg viewBox="0 0 581.8 447"><use href="#tt-wordmark"></use></svg></a>
+    </div>
+    <div class="addr">
+      <strong style="color:#fff">Thinktecture AG</strong><br>
+      Bernhard-Krieg-Str. 4<br>
+      97845 Neustadt am Main<br>
+      <a href="https://thinktecture.com">thinktecture.com</a>
+    </div>
+    <div class="fine">
+      <span>Strategic Research: Advanced RAG · Lukas Köhler · 1. Juni 2026</span>
+      <span>Benchmark: thinktecture/biocdqa-rag · Observability: Langfuse</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // progress bar
+  const prog=document.getElementById('progress');
+  const onScroll=()=>{
+    const h=document.documentElement;
+    const sc=(h.scrollTop)/(h.scrollHeight-h.clientHeight);
+    prog.style.width=(sc*100)+'%';
+  };
+  document.addEventListener('scroll',onScroll,{passive:true});
+
+  // reveal on scroll
+  const io=new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+  },{threshold:.12});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+  // animate chart bars when their card enters view
+  const chartIo=new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        e.target.querySelectorAll('.bar-fill').forEach((b,i)=>{
+          setTimeout(()=>{ b.style.width=b.dataset.w+'%'; }, 90*i);
+        });
+        chartIo.unobserve(e.target);
+      }
+    });
+  },{threshold:.25});
+  document.querySelectorAll('.chart-card').forEach(c=>chartIo.observe(c));
+
+  // highlight best values once animated
+  document.querySelectorAll('.bestv').forEach(v=>{ v.style.color='var(--coral-deep)'; });
+
+  // ---- build navigable document outline ----
+  (function(){
+    const list=document.getElementById('docnavList');
+    if(!list) return;
+    const heads=[...document.querySelectorAll('h2.reveal, h3.reveal, h4.reveal')];
+    if(!heads.length) return;
+    const links=[];
+    heads.forEach((el,i)=>{
+      if(!el.id) el.id='sec-'+i;
+      const lvl=el.tagName.toLowerCase();
+      let label=el.textContent.trim();
+      if(lvl==='h2'){
+        const prev=el.previousElementSibling;
+        if(prev && prev.classList.contains('sec-no')) label=prev.textContent.trim();
+      }
+      const a=document.createElement('a');
+      a.href='#'+el.id;
+      a.textContent=label;
+      a.className='lvl-'+lvl;
+      a.dataset.target=el.id;
+      list.appendChild(a);
+      links.push(a);
+    });
+    links[0].classList.add('first');
+
+    const panel=document.getElementById('docnav');
+    const backdrop=document.getElementById('docnavBackdrop');
+    const overlay=()=>window.matchMedia('(max-width:1639px)').matches;
+    const openP=()=>{ panel.classList.add('open'); if(overlay()) backdrop.classList.add('show'); };
+    const closeP=()=>{ panel.classList.remove('open'); backdrop.classList.remove('show'); };
+    document.getElementById('docnavToggle').addEventListener('click',()=>{ panel.classList.contains('open')?closeP():openP(); });
+    document.getElementById('docnavClose').addEventListener('click',closeP);
+    backdrop.addEventListener('click',closeP);
+
+    links.forEach(a=>a.addEventListener('click',e=>{
+      e.preventDefault();
+      const t=document.getElementById(a.dataset.target);
+      if(!t) return;
+      const y=t.getBoundingClientRect().top+window.scrollY-90;
+      window.scrollTo({top:y,behavior:'smooth'});
+      if(overlay()) closeP();
+    }));
+
+    let ticking=false;
+    function spy(){
+      ticking=false;
+      const pos=window.scrollY+130;
+      let cur=heads[0];
+      for(const el of heads){
+        if(el.getBoundingClientRect().top+window.scrollY<=pos) cur=el; else break;
+      }
+      links.forEach(a=>a.classList.toggle('active', a.dataset.target===cur.id));
+      const act=list.querySelector('a.active');
+      if(act){
+        const r=act.getBoundingClientRect(), p=panel.getBoundingClientRect();
+        if(r.top<p.top+8 || r.bottom>p.bottom-8) act.scrollIntoView({block:'nearest'});
+      }
+    }
+    window.addEventListener('scroll',()=>{ if(!ticking){ ticking=true; requestAnimationFrame(spy); } },{passive:true});
+    window.addEventListener('resize',()=>{ if(!overlay()) backdrop.classList.remove('show'); });
+    spy();
+  })();
+
+  // ---- top-bar: smooth scroll + scrollspy ----
+  (function(){
+    const barLinks=[...document.querySelectorAll('header.bar nav.toc a')];
+    if(!barLinks.length) return;
+    const secs=barLinks.map(a=>document.getElementById(a.getAttribute('href').slice(1))).filter(Boolean);
+    barLinks.forEach(a=>a.addEventListener('click',e=>{
+      const t=document.getElementById(a.getAttribute('href').slice(1));
+      if(!t) return; e.preventDefault();
+      window.scrollTo({top:t.getBoundingClientRect().top+window.scrollY-72,behavior:'smooth'});
+    }));
+    let tk=false;
+    function spy(){ tk=false; const pos=window.scrollY+130; let si=0;
+      secs.forEach((s,i)=>{ if(s.getBoundingClientRect().top+window.scrollY<=pos) si=i; });
+      barLinks.forEach((a,i)=>a.classList.toggle('active', i===si));
+    }
+    window.addEventListener('scroll',()=>{ if(!tk){ tk=true; requestAnimationFrame(spy); } },{passive:true});
+    spy();
+  })();
+</script>
+</body>
+</html>
