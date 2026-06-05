@@ -401,7 +401,8 @@
     <a href="#abstract">Abstract</a>
     <a href="#systeme">Systeme</a>
     <a href="#evaluation">Evaluation</a>
-    <a href="#ergebnisse">Ergebnisse</a>
+    <a href="#ergebnisse">Ergeb. XXS</a>
+    <a href="#ergebnisse-xs">Ergeb. XS</a>
     <a href="#diskussion">Diskussion</a>
     <a href="#entscheidung">Matrix</a>
   </nav>
@@ -430,7 +431,7 @@
       <p>Retrieval-Augmented Generation (RAG) hat sich als praktikabler Ansatz für Question Answering auf spezialisierten Wissensbeständen etabliert — besonders dort, wo faktische Fundierung, Nachvollziehbarkeit und kontrollierbares Systemverhalten wichtiger sind als rein parametrisches Modellwissen. Gleichzeitig hat sich der Designraum moderner RAG-Systeme deutlich über einfache Vektor-Retrieval-Pipelines hinaus erweitert.</p>
       <p>Ansätze wie Standard-RAG, LightRAG und GraphRAG treffen unterschiedliche Annahmen über Dokumentrepräsentation, Retrieval-Strukturen, Kontextaufbau und die Nutzung expliziter Beziehungen zwischen Entitäten. In diesem Mini-Paper evaluieren wir diese Ansätze anhand des <strong style="color:#fff">BioCDQA-Benchmarks</strong> entlang praxisrelevanter Dimensionen: Antwortkorrektheit, Grounding über Quellen, Retrieval-Relevanz, Latenz, Ingestion-Komplexität und operative Kosten.</p>
       <p>Ziel ist eine pragmatische Aussage darüber, ob komplexere Retrieval-Architekturen ihren zusätzlichen Aufwand bei Ingestion und Laufzeit rechtfertigen — und unter welchen Bedingungen sich welche Architektur für biomedizinische und vergleichbar spezialisierte Domänen eignet.</p>
-      <p>Vorab das zentrale Ergebnis: Es gibt keinen Gesamtsieger, sondern einen Qualität-vs-Kosten-Trade. <strong style="color:#fff">GraphRAG Local</strong> liefert die beste ausgewogene Antwortqualität, <strong style="color:#fff">LightRAG</strong> die mit Abstand günstigsten Anfragekosten bei nur mittlerer Qualität, und <strong style="color:#fff">Standard-RAG</strong> das beste Grounding bei billigster Indexierung. <strong style="color:#fff">GraphRAG Global</strong> erreicht die höchste Correctness, ist aber kaum gegroundet und der teuerste Modus. Die abschließende <strong style="color:#fff">Entscheidungsmatrix</strong> übersetzt die Messdaten in Empfehlungen pro Einsatzszenario.</p>
+      <p>Vorab das zentrale Ergebnis: Die Rangfolge hängt am Noise. Auf dem <strong style="color:#fff">zero-noise XXS-Split</strong> führen die Graph-Verfahren die Qualität an (GraphRAG Local am ausgewogensten). Unter realistischem Distraktor-Anteil (<strong style="color:#fff">XS-Split, 9,5 % Signal</strong>) kippt das: <strong style="color:#fff">LightRAG</strong> wird zum robustesten Qualitätsführer, <strong style="color:#fff">Standard-RAG</strong> hält das beste Grounding, und der Graph-Vorsprung verschwindet &#8212; er war ein Zero-Noise-Artefakt. Über die Kosten dominiert die Ingestion: Der fast-NLP-Graph-Index ist am günstigsten (TCO ~43 M), LightRAGs KG-Extraktion am teuersten (~163 M), und GraphRAG Global ist auf beiden Achsen das schlechteste Setup. Die abschließende <strong style="color:#fff">Entscheidungsmatrix</strong> übersetzt das in Empfehlungen pro Einsatzszenario.</p>
     </div>
   </div>
 </section>
@@ -549,7 +550,7 @@
           <tr><td>LLM &#8212; alle Aufrufe (Antwort, Extraktion, HyQE, Map-Reduce)</td><td><code>gpt-oss-120b</code></td></tr>
           <tr><td>Embeddings &#8212; alle Aufrufe</td><td><code>qwen3-embedding:8b</code> · 4096 dim</td></tr>
           <tr><td>Reranker (nur Standard-RAG)</td><td>Cohere <code>Rerank 4 Pro</code> via OpenRouter</td></tr>
-          <tr><td>Evaluation</td><td>LLM-as-a-judge (<code>gpt-oss-120b</code>) · Tracing über Langfuse</td></tr>
+          <tr><td>Evaluation</td><td>LLM-as-a-judge (<code>claude-opus-4.8</code>, unabhängig vom Answer-Model) · Tracing über Langfuse</td></tr>
         </tbody>
       </table>
       </div>
@@ -557,7 +558,7 @@
     </figure>
 
     <h3 class="reveal">BioCDQA-Tiers</h3>
-    <p class="read reveal">Der Datensatz ist in mehrere Tiers unterteilt, die über Korpusgröße, Signal-Anteil und Evaluationsumfang skalieren. Je niedriger der Signal-Anteil (QA-Docs zu Gesamtdokumenten), desto schwieriger das Retrieval — relevante Dokumente müssen in zunehmend verrauschten Korpora gefunden werden. Der zur Ergebniserhebung genutzte <strong>XXS-Split</strong> bildet dabei den Sonderfall <em>ohne</em> Distraktoren ab (Signal 100 %, 0 Noise-Docs): Die bisherigen Retrieval-Metriken werden also noch völlig ohne Such-Noise gemessen — die Noise-Robustheit der Verfahren ist damit bislang ungetestet.</p>
+    <p class="read reveal">Der Datensatz ist in mehrere Tiers unterteilt, die über Korpusgröße, Signal-Anteil und Evaluationsumfang skalieren. Je niedriger der Signal-Anteil (QA-Docs zu Gesamtdokumenten), desto schwieriger das Retrieval — relevante Dokumente müssen in zunehmend verrauschten Korpora gefunden werden. Der zur Ergebniserhebung genutzte <strong>XXS-Split</strong> bildet dabei den Sonderfall <em>ohne</em> Distraktoren ab (Signal 100 %, 0 Noise-Docs); der <strong>XS-Split</strong> stellt dem mit 9,5 % Signal (477 Distraktoren) den realistischen Fall gegenüber und prüft die Noise-Robustheit der Verfahren direkt.</p>
     <figure class="tbl-fig reveal">
       <div class="tbl-wrap">
       <table>
@@ -591,9 +592,9 @@
 <!-- ERGEBNISSE -->
 <section class="block" id="ergebnisse">
   <div class="wrap">
-    <div class="sec-no reveal">03 — Ergebnisse</div>
-    <h2 class="reveal">BioCDQA-XXS: erste indikative Messung</h2>
-    <p class="read reveal">Zum aktuellen Zeitpunkt wurde ausschließlich der <strong>XXS-Split</strong> erhoben, da größere Splits erhebliche Kosten verursachen. Alle Systeme liefen auf der identischen Modellbasis aus der Methodik (gpt-oss-120b, qwen3-embedding:8b, Cohere Rerank 4 Pro) und sind mit demselben unabhängigen Judge (<code>claude-opus-4.8</code>) bewertet, sodass sich Unterschiede primär auf die Retrieval- und Kontextstrategie zurückführen lassen. Wir betrachten die Ergebnisse in drei Schritten: zuerst die <strong>Antwort- und Retrieval-Qualität</strong>, dann <strong>Kosten und Latenz zur Query-Zeit</strong> und schließlich die einmaligen <strong>Ingestion-Kosten</strong> &#8212; am Ende zu einer Total-Cost-Betrachtung zusammengeführt.</p>
+    <div class="sec-no reveal">03 — Ergebnisse · XXS</div>
+    <h2 class="reveal">BioCDQA-XXS — clean (50 Items, 100 % Signal)</h2>
+    <p class="read reveal">Die Ergebnisse sind in zwei Datenkapitel gegliedert: dieser Abschnitt zeigt den zero-noise <strong>XXS-Split</strong>, Abschnitt 04 den verrauschten <strong>XS-Split</strong> &#8212; jeweils mit denselben Diagrammen und Tabellen (Qualität, Kosten/Latenz, Ingestion, TCO). Beide Kapitel präsentieren nur die Messdaten; die Einordnung erfolgt gebündelt in der Diskussion (Abschnitt 05). Alle Läufe nutzen dieselbe Modellbasis (gpt-oss-120b, qwen3-embedding:8b, Cohere Rerank 4 Pro) und denselben unabhängigen Judge (<code>claude-opus-4.8</code>).</p>
 
     <!-- CHART -->
     <div class="chart-card reveal">
@@ -642,18 +643,6 @@
           <div class="bar-line"><span class="bn">GR-Global</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grg)" data-w="11.5"></div></div><span class="bv">0.115</span></div>
           <div class="bar-line"><span class="bn">GR-Local</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grl)" data-w="47.1"></div></div><span class="bv bestv">0.471</span></div>
         </div>
-      </div>
-    </div>
-
-    <!-- FINDING -->
-    <div class="finding reveal">
-      <div class="lbl">Befund · GraphRAG Local vs. Global</div>
-      <h3>Der Local-Search-Modus groundet deutlich besser als das globale Map-Reduce.</h3>
-      <p>Zwischen den beiden GraphRAG-Modi liegt der größte Grounding-Unterschied des gesamten Felds: Gegenüber dem globalen Map-Reduce-Modus erreicht Local Search eine Faithfulness von 0.490 statt 0.102 und einen Context Recall von 0.471 statt 0.115 — bei gleichzeitig höchster Relevance aller vier Varianten (0.922) und starker Correctness (0.660). Die Grounding-Schwäche liegt also im globalen Antwortmechanismus, nicht in der Graph-Architektur an sich.</p>
-      <div class="stats">
-        <div class="st"><div class="num">4,8×</div><div class="cap">Faithfulness vs. Global</div></div>
-        <div class="st"><div class="num">4,1×</div><div class="cap">Context Recall vs. Global</div></div>
-        <div class="st"><div class="num">0.922</div><div class="cap">höchste Relevance im Feld</div></div>
       </div>
     </div>
 
@@ -746,15 +735,7 @@
       </div>
       <figcaption class="tbl-cap"><span class="tnum">Tabelle 4</span><span>Billable Tokens pro Query und Summe über den Lauf · sortiert von günstig nach teuer · niedriger = besser · GraphRAG Global: ~48 LLM-Calls/Query, Σ = Avg &#215; 50</span></figcaption>
     </figure>
-    <h4 class="reveal">LightRAG</h4>
-    <p class="read reveal"><strong>Mit &#216; 4.360 Tokens/Query ist LightRAG der günstigste Ansatz</strong> &#8212; rund <span class="accent">3&#215; weniger als GraphRAG Local</span> (13.375) und <span class="accent">16&#215; weniger als Standard-RAG</span> (69.745). Das Retrieval beruht auf Vektor- und Nachbarschafts-Lookups statt teurer Graph-Traversierung; die abrechenbaren Tokens entfallen im Wesentlichen auf die Query-Keyword-Extraktion und den kompakten Antwort-Prompt. Auch latenzseitig führt LightRAG: Median 6,49 s (&#216; 7,86 s) ist die niedrigste zentrale Latenz im Feld.</p>
-    <h4 class="reveal">GraphRAG Local</h4>
-    <p class="read reveal">GraphRAG Local liegt mit 13.375 Tokens/Query dazwischen und ist mit ~87 % Input-Anteil durch die vorberechneten Community-Reports getrieben. Sein eigentlicher Vorzug ist die Latenz-Stabilität: Bei Median 7,23 s (&#216; 8,21 s) besitzt es die <strong>engste Verteilung</strong> des Feldes &#8212; P95 14,82 s und P99 15,57 s bleiben deutlich unter LightRAGs Tails (17,35 s / 19,85 s). Für harte Latenz-SLAs ist das die vorhersehbarste Wahl.</p>
-    <h4 class="reveal">Standard-RAG</h4>
-    <p class="read reveal">Standard-RAGs scheinbar dramatische 69.745 Tokens/Query sind kein LLM-Problem: Das Antwortmodell verbraucht nur 4.415 Tokens, während der <strong>Reranker-Input mit 65.263 Tokens rund 94 % der Rechnung ausmacht</strong>. Pro Query werden also ~65k Tokens an Kandidaten durch den Reranker geschoben &#8212; ein Konfigurations-Kostentreiber, kein architektureller Zwang. Derselbe große Kandidatenstapel schlägt zudem direkt auf die <strong>Latenz</strong> durch: Der Reranking-Schritt ist der dominante Beitrag zu Standard-RAGs schwacher Latenz &#8212; Median 9,43 s, und mit P95 31,08 s / P99 39,65 s die schlechtesten Tails der vollständig gemessenen Läufe. Ein kleineres Kandidatenfenster würde damit <em>beides</em> entlasten, Token-Kosten <em>und</em> Latenz, ohne notwendigerweise die Antwortqualität zu treffen.</p>
-    <h4 class="reveal">GraphRAG Global</h4>
-    <p class="read reveal"><strong>GraphRAG Global</strong> sprengt diesen Rahmen vollständig. Eine einzige Global-Query kostet <strong>~596.000 Tokens über 48 LLM-Calls</strong> &#8212; rund <span class="accent">45&#215; mehr als GraphRAG Local</span> und <span class="accent">~9&#215; mehr als Standard-RAG</span>; über den 50-Query-Lauf summiert sich das auf <strong>~29,8 Mio. Tokens</strong>. Der Grund liegt im Map-Reduce-Mechanismus: Zur Anfragezeit werden faktisch alle vorberechneten Community-Reports batchweise durch das LLM geschoben (~98 % der Tokens sind Prompt-Input). Auch latenzseitig ist Global mit Median 16,8 s der langsamste Modus &#8212; rund doppelt so langsam wie LightRAG oder GraphRAG Local, allerdings mit einem stabileren Tail (P99 33,4 s) als das ausreißeranfällige Standard-RAG (39,65 s).</p>
-    <p class="read reveal">Auf Query-Ebene ordnet sich das Feld nach Token-Volumen klar: LightRAG (4.360) &#8810; GraphRAG Local (13.375) &#8810; Standard-RAG (69.745, reranker-dominiert) &#8810; GraphRAG Global (595.705). Die Median-Latenz folgt derselben Reihung &#8212; mit der Ausnahme der Tails, wo GraphRAG Local trotz höherer Token-Last die engste Verteilung hält. Ob diese Query-Kosten den jeweiligen Indexierungsaufwand rechtfertigen, entscheidet sich erst in der Total-Cost-Betrachtung; die beiden Posten verhalten sich, wie der nächste Abschnitt zeigt, spiegelbildlich.</p>
+    <p class="read reveal">Tabelle 3 listet die End-to-End-Latenz pro Query, Tabelle 4 die billable Tokens pro Query (sortiert von günstig nach teuer). Die Spannweite ist groß: LightRAG ist mit &#216; 4.360 Tok/Query und der niedrigsten Median-Latenz am günstigsten, gefolgt von GraphRAG Local (13.375 Tok, engste Latenzverteilung) und Standard-RAG (69.745 Tok, zu ~94 % reranker-getriebener Input); GraphRAG Global liegt mit ~595.705 Tok über ~48 Map-Reduce-Calls je Query um Größenordnungen darüber. Die Einordnung dieser Profile erfolgt in der Diskussion (Abschnitt 05).</p>
 
     <h3 class="reveal">Ingestion: einmalige Indexierungskosten</h3>
     <p class="read reveal">Die Query-Zeit ist nur die halbe Rechnung. Die einmalige Indexierung fällt je System sehr unterschiedlich aus &#8212; und entgegen der Intuition ist die leichtgewichtige Graph-Variante hier <em>nicht</em> günstig. Der direkte Vergleich der drei Indizes (der GraphRAG-Index dient sowohl Local als auch Global):</p>
@@ -890,19 +871,159 @@
     </figure>
     <div class="callout reveal">
       <div class="clbl">Lesart · Token-Volumen, nicht Preis</div>
-      <p>Alle Summen sind <strong>rohe billable Tokens</strong> und aggregieren bewusst heterogene Ströme: Reranker-Input (Standard-RAG), LLM-Prompt/Completion und Embeddings zählen hier gleich. Standard-RAGs Gesamtwert ist zu ~94 % reranker-getriebener Input &#8212; ein über die Kandidaten-Fenstergröße <strong>tunbarer Konfigurationsposten</strong>, kein architektureller Zwang. Die Rangfolge ist damit eine <strong>Volumen</strong>-Rangfolge unter der aktuellen Konfiguration; verkleinert man Standard-RAGs Fenster, sinkt dessen Query-Volumen und der Break-even verschiebt sich entsprechend. Eine streamgewichtete Betrachtung bleibt Future Work (Abschnitt 04).</p>
+      <p>Alle Summen sind <strong>rohe billable Tokens</strong> und aggregieren bewusst heterogene Ströme: Reranker-Input (Standard-RAG), LLM-Prompt/Completion und Embeddings zählen hier gleich. Standard-RAGs Gesamtwert ist zu ~94 % reranker-getriebener Input &#8212; ein über die Kandidaten-Fenstergröße <strong>tunbarer Konfigurationsposten</strong>, kein architektureller Zwang. Die Rangfolge ist damit eine <strong>Volumen</strong>-Rangfolge unter der aktuellen Konfiguration; verkleinert man Standard-RAGs Fenster, sinkt dessen Query-Volumen und der Break-even verschiebt sich entsprechend. Eine streamgewichtete Betrachtung bleibt Future Work (Abschnitt 05).</p>
     </div>
     <p class="read reveal">Das Ergebnis ist volumenabhängig und spiegelbildlich. Bei <strong>50 Queries</strong> führt Standard-RAG mit 10,3 M Tokens, weil seine billige Indexierung dominiert; bei <strong>5.000 Queries</strong> ist LightRAG mit 42,6 M das günstigste System, während Standard-RAG durch den reranker-getriebenen Query-Aufwand auf 356 M steigt &#8212; der Break-even liegt bei rund <span class="accent">210 Queries</span>. GraphRAG Local bleibt durchgehend teurer als LightRAG (höhere Indexierung <em>und</em> höhere Query-Kosten), und GraphRAG Global ist auf jedem Betriebspunkt das mit Abstand teuerste System &#8212; bei 5.000 Queries im Milliardenbereich.</p>
-    <p class="read reveal">Welche Architektur diese Volumenkurven in eine Empfehlung übersetzen, behandelt die Diskussion (Abschnitt 04) entlang von Qualität, Grounding und Betriebsprofil &#8212; die Entscheidungsmatrix (Abschnitt 05) führt es pro Szenario zusammen.</p>
+    <p class="read reveal">Welche Architektur diese Volumenkurven in eine Empfehlung übersetzen, behandelt die Diskussion (Abschnitt 05) entlang von Qualität, Grounding und Betriebsprofil &#8212; die Entscheidungsmatrix (Abschnitt 06) führt es pro Szenario zusammen.</p>
+
+  </div>
+</section>
+
+<!-- ERGEBNISSE · XS -->
+<section class="block" id="ergebnisse-xs">
+  <div class="wrap">
+    <div class="sec-no reveal">04 — Ergebnisse · XS</div>
+    <h2 class="reveal">BioCDQA-XS — Noise (83 Items, 9,5 % Signal)</h2>
+    <p class="read reveal">Derselbe Aufbau wie Abschnitt 03, auf dem realistischen Split: 527 Dokumente, davon 477 Distraktoren und nur 50 QA-Docs (9,5 % Signal), 83 Fragen, identische Modell- und Judge-Basis. Reine Datenpräsentation &#8212; die Einordnung und der Vergleich zu XXS folgen in der Diskussion (Abschnitt 05).</p>
+
+    <!-- CHART · QUALITÄT XS -->
+    <div class="chart-card reveal">
+      <div class="legend">
+        <div class="li"><span class="sw" style="background:var(--c-std)"></span>Standard-RAG <span style="color:var(--muted)">· Rerank + HyQE</span></div>
+        <div class="li"><span class="sw" style="background:var(--c-light)"></span>LightRAG <span style="color:var(--muted)">· Mix Mode</span></div>
+        <div class="li"><span class="sw" style="background:var(--c-grg)"></span>GraphRAG <span style="color:var(--muted)">· Global / Map-Reduce</span></div>
+        <div class="li"><span class="sw" style="background:var(--c-grl)"></span>GraphRAG <span style="color:var(--muted)">· Local Search</span></div>
+      </div>
+      <div class="metric-row" data-chart>
+        <div class="mlabel"><span class="mname">Relevance</span><span class="mhint">höher = besser</span></div>
+        <div class="bars">
+          <div class="bar-line"><span class="bn">Standard</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-std)" data-w="64.9"></div></div><span class="bv">0.649</span></div>
+          <div class="bar-line"><span class="bn">LightRAG</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-light)" data-w="79.0"></div></div><span class="bv bestv">0.790</span></div>
+          <div class="bar-line"><span class="bn">GR-Global</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grg)" data-w="58.2"></div></div><span class="bv">0.582</span></div>
+          <div class="bar-line"><span class="bn">GR-Local</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grl)" data-w="65.6"></div></div><span class="bv">0.656</span></div>
+        </div>
+      </div>
+      <div class="metric-row" data-chart>
+        <div class="mlabel"><span class="mname">Correctness</span><span class="mhint">höher = besser</span></div>
+        <div class="bars">
+          <div class="bar-line"><span class="bn">Standard</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-std)" data-w="37.2"></div></div><span class="bv">0.372</span></div>
+          <div class="bar-line"><span class="bn">LightRAG</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-light)" data-w="43.4"></div></div><span class="bv bestv">0.434</span></div>
+          <div class="bar-line"><span class="bn">GR-Global</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grg)" data-w="40.9"></div></div><span class="bv">0.409</span></div>
+          <div class="bar-line"><span class="bn">GR-Local</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grl)" data-w="39.6"></div></div><span class="bv">0.396</span></div>
+        </div>
+      </div>
+      <div class="metric-row" data-chart>
+        <div class="mlabel"><span class="mname">Faithfulness</span><span class="mhint">Grounding · höher = besser</span></div>
+        <div class="bars">
+          <div class="bar-line"><span class="bn">Standard</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-std)" data-w="70.9"></div></div><span class="bv bestv">0.709</span></div>
+          <div class="bar-line"><span class="bn">LightRAG</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-light)" data-w="64.6"></div></div><span class="bv">0.646</span></div>
+          <div class="bar-line"><span class="bn">GR-Global</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grg)" data-w="38.4"></div></div><span class="bv">0.384</span></div>
+          <div class="bar-line"><span class="bn">GR-Local</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grl)" data-w="46.8"></div></div><span class="bv">0.468</span></div>
+        </div>
+      </div>
+      <div class="metric-row" data-chart>
+        <div class="mlabel"><span class="mname">Context Recall</span><span class="mhint">höher = besser</span></div>
+        <div class="bars">
+          <div class="bar-line"><span class="bn">Standard</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-std)" data-w="28.0"></div></div><span class="bv">0.280</span></div>
+          <div class="bar-line"><span class="bn">LightRAG</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-light)" data-w="29.0"></div></div><span class="bv bestv">0.290</span></div>
+          <div class="bar-line"><span class="bn">GR-Global</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grg)" data-w="1.7"></div></div><span class="bv">0.017</span></div>
+          <div class="bar-line"><span class="bn">GR-Local</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grl)" data-w="14.6"></div></div><span class="bv">0.146</span></div>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="reveal">Detailergebnisse pro System</h3>
+    <figure class="tbl-fig reveal">
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Metrik (Opus-Judge)</th><th class="num">Standard-RAG</th><th class="num">LightRAG</th><th class="num">GR Local</th><th class="num">GR Global</th></tr></thead>
+        <tbody>
+          <tr><td>relevance</td><td class="num">0.649</td><td class="num best">0.790</td><td class="num">0.656</td><td class="num">0.582</td></tr>
+          <tr><td>correctness</td><td class="num">0.372</td><td class="num best">0.434</td><td class="num">0.396</td><td class="num">0.409</td></tr>
+          <tr><td>faithfulness</td><td class="num best">0.709</td><td class="num">0.646</td><td class="num">0.468</td><td class="num">0.384</td></tr>
+          <tr><td>context_recall</td><td class="num">0.280</td><td class="num best">0.290</td><td class="num">0.146</td><td class="num">0.017</td></tr>
+          <tr><td>document_recall</td><td class="num">0.720</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>
+          <tr><td>document_precision</td><td class="num">0.159</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>
+          <tr><td>passage_recall</td><td class="num">0.722</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>
+          <tr><td>count (n)</td><td class="num">83</td><td class="num">83</td><td class="num">83</td><td class="num">83</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <figcaption class="tbl-cap"><span class="tnum">Tabelle 12</span><span>BioCDQA-XS (83 Items, 9,5 % Signal, 477 Distraktoren) · einheitlicher Judge claude-opus-4.8 · Bestwert je LLM-bewerteter Zeile hervorgehoben.</span></figcaption>
+    </figure>
+
+    <h3 class="reveal">Token-Verbrauch &amp; Latenz</h3>
+    <figure class="tbl-fig reveal">
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>System</th><th class="num">Answer p50 / p95 (ms)</th><th class="num">Judge p50 / p95 (ms)</th><th class="num">Wall-Clock</th></tr></thead>
+        <tbody>
+          <tr><td>Standard-RAG</td><td class="num">904 / 2.698</td><td class="num">2.790 / 4.009</td><td class="num">1.730 s</td></tr>
+          <tr><td>LightRAG</td><td class="num">1.143 / 3.485</td><td class="num">2.966 / 4.463</td><td class="num">2.110 s</td></tr>
+          <tr><td>GraphRAG Local</td><td class="num">1.850 / 4.632</td><td class="num">2.860 / 4.306</td><td class="num">3.887 s</td></tr>
+          <tr><td>GraphRAG Global</td><td class="num">807 / 2.901</td><td class="num">2.725 / 4.223</td><td class="num">3.122 s</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <figcaption class="tbl-cap"><span class="tnum">Tabelle 13</span><span>BioCDQA-XS · Eval-Latenz pro Query (ms, p50/p95) und Wall-Clock je Lauf (83 Items) · niedriger = besser.</span></figcaption>
+    </figure>
+
+    <h3 class="reveal">Ingestion: einmalige Indexierungskosten</h3>
+    <figure class="tbl-fig reveal">
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>System</th><th class="num">LLM o200k</th><th class="num">Embedding o200k</th><th class="num">Ingestion o200k</th><th class="num">Zeit</th></tr></thead>
+        <tbody>
+          <tr><td>Standard-RAG</td><td class="num">12,8 M</td><td class="num">56,1 M</td><td class="num">69,0 M</td><td class="num">36 min</td></tr>
+          <tr><td>LightRAG</td><td class="num">126,1 M</td><td class="num">36,4 M</td><td class="num">162,5 M</td><td class="num">~12,5 h</td></tr>
+          <tr><td>GraphRAG (Local &amp; Global)</td><td class="num">17,8 M</td><td class="num">23,7 M</td><td class="num">41,4 M</td><td class="num">11,5 h</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <figcaption class="tbl-cap"><span class="tnum">Tabelle 14</span><span>BioCDQA-XS · einmalige Ingestion in o200k-Tokens · der GraphRAG-Index wird einmal gebaut und von Local &amp; Global geteilt · LightRAG: 443/527 Docs.</span></figcaption>
+    </figure>
+
+    <h3 class="reveal">Total Cost of Ownership</h3>
+    <!-- CHART · TCO XS -->
+    <div class="chart-card reveal">
+      <div class="legend">
+        <div class="li"><span class="sw" style="background:var(--c-std)"></span>Standard-RAG</div>
+        <div class="li"><span class="sw" style="background:var(--c-light)"></span>LightRAG</div>
+        <div class="li"><span class="sw" style="background:var(--c-grg)"></span>GraphRAG Global</div>
+        <div class="li"><span class="sw" style="background:var(--c-grl)"></span>GraphRAG Local</div>
+      </div>
+      <div class="metric-row" data-chart>
+        <div class="mlabel"><span class="mname">TCO gesamt (o200k)</span><span class="mhint">niedriger = besser</span></div>
+        <div class="bars">
+          <div class="bar-line"><span class="bn">Standard</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-std)" data-w="36.3"></div></div><span class="bv">~70 M</span></div>
+          <div class="bar-line"><span class="bn">LightRAG</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-light)" data-w="84.5"></div></div><span class="bv">~163 M</span></div>
+          <div class="bar-line"><span class="bn">GR-Global</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grg)" data-w="100"></div></div><span class="bv">~193 M</span></div>
+          <div class="bar-line"><span class="bn">GR-Local</span><div class="bar-track"><div class="bar-fill" style="background:var(--c-grl)" data-w="22.3"></div></div><span class="bv bestv">~43 M</span></div>
+        </div>
+      </div>
+    </div>
+    <figure class="tbl-fig reveal">
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>TCO o200k — biocdqa-xs</th><th class="num">Standard-RAG</th><th class="num">LightRAG</th><th class="num">GR Local</th><th class="num">GR Global</th></tr></thead>
+        <tbody>
+          <tr><td>Ingestion (einmalig)</td><td class="num">69,0 M</td><td class="num">162,5 M</td><td class="num">41,4 M</td><td class="num">41,4 M</td></tr>
+          <tr><td>Eval / Query-Last</td><td class="num">0,93 M</td><td class="num best">0,91 M</td><td class="num">1,75 M</td><td class="num">152,0 M</td></tr>
+          <tr><td>TCO gesamt</td><td class="num">~70 M</td><td class="num">~163 M</td><td class="num best">~43 M</td><td class="num">~193 M</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <figcaption class="tbl-cap"><span class="tnum">Tabelle 15</span><span>Total Cost of Ownership in o200k-Tokens für biocdqa-xs · Ingestion (geteilter Graph-Index für Local &amp; Global) + Eval · niedriger = besser.</span></figcaption>
+    </figure>
   </div>
 </section>
 
 <!-- DISKUSSION -->
 <section class="block" id="diskussion">
   <div class="wrap">
-    <div class="sec-no reveal">04 — Diskussion</div>
+    <div class="sec-no reveal">05 — Diskussion</div>
     <h2 class="reveal">Einordnung der Ergebnisse</h2>
-    <p class="read reveal">Die XXS-Ergebnisse sind keine abschließende Rangfolge, sondern eine erste indikative Messung unter kontrollierten Bedingungen. Dennoch zeichnen sich bereits auf dem kleinsten Split klare Systemcharakteristika ab. Die folgende Einordnung gewichtet zunächst die Antwort- und Retrieval-Qualität; Kosten und Latenz aus Abschnitt 03 fließen anschließend in die Entscheidungsmatrix ein.</p>
+    <p class="read reveal">Die folgende Einordnung beschreibt zunächst die Systemcharakteristik auf dem <strong>clean XXS-Split</strong>; der XS-Split (Abschnitt 04) zeigt anschließend, welche dieser Eigenschaften unter Noise Bestand haben. Gewichtet werden Antwort- und Retrieval-Qualität; Kosten und Latenz aus den Ergebnis-Abschnitten fließen in die Entscheidungsmatrix ein.</p>
 
     <blockquote class="reveal">Eine hohe Correctness ist das primäre Ziel aus Nutzersicht — reicht zur Bewertung eines RAG-Systems allein aber nicht aus. RAG soll richtige Antworten <em>aus den bereitgestellten Quellen</em> ableiten.</blockquote>
 
@@ -919,26 +1040,35 @@
       <div class="k"><div class="kt">H2 · Mess-Artefakt</div><p>Faithfulness/Context-Recall messen die Überlappung der Antwort mit dem <em>bereitgestellten</em> Kontext. Bei Global ist dieser Kontext eine stark abstrahierte Map-Reduce-Synthese vorberechneter Reports, nicht der Quelltext — eine korrekt abgeleitete Antwort kann so niedrig scoren, ohne ungegroundet zu sein.</p></div>
     </div>
     <p class="read reveal">Beide Hypothesen sind mit den Daten vereinbar; der niedrige Context Recall (0.115) entscheidet nicht zwischen ihnen. Eine Trennung von H1 und H2 erfordert (a) eine Faithfulness-Messung gegen den <em>Quelltext</em> statt gegen die abstrahierte Report-Synthese und (b) eine Closed-Book-Probe, ob die korrekten Antworten auch ohne retrievten Kontext reproduzierbar sind. Unabhängig vom Ausgang gilt: Eine Antwort, deren Herkunft sich nicht gegen die Quellen verifizieren lässt, ist für biomedizinische Auditierbarkeit schwer vertretbar.</p>
-    <p class="read reveal">Der <strong>Local-Search-Modus</strong> zeigt ein anderes Bild. Faithfulness (0.490) und Context Recall (0.471) liegen rund 4,8× bzw. 4,1× über dem globalen Modus, und die Relevance (0.922) ist die höchste im gesamten Feld — bei zugleich starker Correctness (0.660). GraphRAGs Grounding-Schwäche ist damit eine Eigenschaft des globalen Antwortmechanismus, nicht der Graph-Architektur. Local Search ist der <strong>ausgewogenste Top-Performer</strong> des Feldes: führend bei Relevance und Context Recall, zweitbeste Correctness. Sein relativer Schwachpunkt bleibt die Faithfulness (0.490) — sie liegt unter Standard-RAG (0.681) und LightRAG (0.607); das Grounding ist solide, aber nicht das beste des Feldes.</p>
+    <p class="read reveal">Der <strong>Local-Search-Modus</strong> zeigt ein anderes Bild. Faithfulness (0.490) und Context Recall (0.471) liegen rund 4,8× bzw. 4,1× über dem globalen Modus, und die Relevance (0.922) ist die höchste im gesamten Feld — bei zugleich starker Correctness (0.660). GraphRAGs Grounding-Schwäche ist damit eine Eigenschaft des globalen Antwortmechanismus, nicht der Graph-Architektur. <strong>Auf XXS</strong> ist Local Search der ausgewogenste Top-Performer: führend bei Relevance und Context Recall, zweitbeste Correctness. Sein relativer Schwachpunkt bleibt die Faithfulness (0.490) — sie liegt unter Standard-RAG (0.681) und LightRAG (0.607).</p>
+    <div class="finding reveal">
+      <div class="lbl">Befund · GraphRAG Local vs. Global (XXS)</div>
+      <h3>Der Local-Search-Modus groundet deutlich besser als das globale Map-Reduce.</h3>
+      <p>Zwischen den beiden GraphRAG-Modi liegt der größte Grounding-Unterschied des gesamten Felds: Gegenüber dem globalen Map-Reduce-Modus erreicht Local Search eine Faithfulness von 0.490 statt 0.102 und einen Context Recall von 0.471 statt 0.115 — bei gleichzeitig höchster Relevance aller vier Varianten (0.922) und starker Correctness (0.660). Die Grounding-Schwäche liegt also im globalen Antwortmechanismus, nicht in der Graph-Architektur an sich.</p>
+      <div class="stats">
+        <div class="st"><div class="num">4,8×</div><div class="cap">Faithfulness vs. Global</div></div>
+        <div class="st"><div class="num">4,1×</div><div class="cap">Context Recall vs. Global</div></div>
+        <div class="st"><div class="num">0.922</div><div class="cap">höchste Relevance im Feld</div></div>
+      </div>
+    </div>
+    <h3 class="reveal">Skalierung: Was unter Noise Bestand hat</h3>
+    <p class="read reveal">Die XXS-Charakteristik ist nur die halbe Geschichte &#8212; sie gilt bei perfektem Retrieval ohne Distraktoren. Der XS-Split (Abschnitt 04) zeigt, dass sich die Rangfolge unter 90 % Noise neu ordnet: <strong>GraphRAG Locals XXS-Qualitätsführung überlebt den Noise nicht</strong> (Context Recall fällt 0.471 → 0.146, Faithfulness 0.490 → 0.468 bei insgesamt schwächerem Feld). Stattdessen wird <strong>LightRAG zum robustesten Qualitätsführer</strong> (beste Relevance, Correctness und Context Recall auf XS), während <strong>Standard-RAG sein bestes Grounding über beide Splits hält</strong> (Faithfulness 0.681 → 0.709). Die belastbarste Aussage über beide Splits: Der Graph-Vorteil ist an saubere Retrieval-Bedingungen gebunden, das Reranker-Grounding der Baseline und das Dual-Level-Retrieval von LightRAG tragen unter realistischem Noise.</p>
 
     <div class="kbox reveal">
-      <div class="k"><div class="kt">GraphRAG Local → Qualitäts-Kandidat</div><p>Unter unabhängiger Bewertung der ausgewogenste Top-Performer: beste Relevance (0.922) und Context Recall (0.471), zweitbeste Correctness. Engste Latenzverteilung. Preis: teure Indexierung (25 M) und höhere Query-Kosten (13.375 Tok) als LightRAG.</p></div>
-      <div class="k"><div class="kt">LightRAG → Effizienz-Kandidat</div><p>Günstigste Queries (4.360 Tok) und niedrigste Median-Latenz, Indexierung amortisiert ab ~210 Queries. Qualitativ aber nur Mittelfeld &#8212; führt in keiner LLM-bewerteten Metrik, niedrigster Passage Recall. Wahl, wenn Durchsatz/Kosten zählen.</p></div>
-      <div class="k"><div class="kt">Standard-RAG → solides Grounding</div><p>Bestes Grounding (Faithfulness 0.681) und höchster Passage Recall, billigste Indexierung. Aber teuerste Queries (Reranker ~94 % der Token <em>und</em> dominanter Latenztreiber) und schwache Document Precision. Gut für kleine, statische Korpora.</p></div>
-      <div class="k"><div class="kt">GraphRAG Global → nachrangig</div><p>Höchste Correctness (0.715), aber schwächstes Grounding des Feldes (Faithfulness 0.102) und mit ~596k Tok/Query der teuerste Modus. Nur für echte corpusweite Sensemaking-Fragen, nicht für auditierbares Factoid-QA.</p></div>
+      <div class="k"><div class="kt">GraphRAG Local → günstigste TCO, clean-data-stark</div><p>Niedrigste TCO des Felds (~43 M, fast-NLP-Index ohne LLM-Extraktion) und auf XXS der ausgewogenste Performer (beste Relevance, Context Recall). Aber der Qualitätsvorsprung verschwindet unter Noise &#8212; Grounding fällt (Context Recall 0.471 → 0.146). Gut, wenn der Korpus sauber und das Budget eng ist.</p></div>
+      <div class="k"><div class="kt">LightRAG → robusteste Qualität</div><p>Auf XXS Mittelfeld, aber unter Noise (XS) Qualitätsführer: beste Relevance (0.790), Correctness (0.434) und Context Recall (0.290). Günstigste Queries und niedrigste Median-Latenz. Preis: die mit Abstand teuerste Indexierung des Felds (KG-Extraktion, ~163 M TCO).</p></div>
+      <div class="k"><div class="kt">Standard-RAG → bestes Grounding</div><p>Über beide Splits die höchste Faithfulness (0.681 / 0.709) und der billigste Sweet-Spot (~70 M TCO). Schwäche: Document Precision bricht unter Noise ein (0.159), und die Queries sind reranker-getrieben teuer. Stark für kleine, statische, audit-kritische Korpora.</p></div>
+      <div class="k"><div class="kt">GraphRAG Global → nachrangig</div><p>Schwächstes Grounding auf beiden Splits (Context Recall 0.115 / 0.017) und das teuerste Setup (~193 M TCO; 152 M Eval-Tokens auf XS, ~150 Map-Reduce-Calls/Query). Höchste Correctness nur auf clean XXS. Nur für echtes corpusweites Sensemaking, nicht für auditierbares Factoid-QA.</p></div>
     </div>
-
-    <h3 class="reveal">Wissenschaftliche Lücken</h3>
-    <p class="read reveal">Die Aussagekraft ist durch die kleine Stichprobe (n = 50) und die Beschränkung auf den XXS-Split <strong>ohne Distraktoren</strong> limitiert. Skalierungseffekte über zunehmenden Noise-Anteil, mehrere Quelldokumente pro Frage und größere Korpora sind offen — gerade die Noise-Robustheit, in der graphbasierte Verfahren ihren Mehrwert ausspielen müssten, ist hier untestbar. Die Bewertung nutzt ein einzelnes Judge-Modell (<code>claude-opus-4.8</code>, unabhängig vom Answer-Model <code>gpt-oss-120b</code>); die LLM-bewerteten Metriken sind damit eine konsistente, generator-unabhängige Messbasis, aber kein absolutes Qualitätsmaß. Schließlich wurde LightRAG nur im Mix-Modus (Dual-Level) gemessen — die reinen Local-/Global-Modi sind ungetestet, obwohl ein LightRAG-Global ein günstigerer Gegenspieler zu GraphRAG Global sein könnte.</p>
 
     <h3 class="reveal">Future Work</h3>
     <ul class="fw reveal">
-      <li><b>Skalierung auf XS–M</b> — Kosten zunächst auf die vielversprechendsten Kandidaten (LightRAG, GraphRAG Local) konzentrieren, bevor größere Splits erhoben werden.</li>
+      <li><b>Skalierung auf S–M</b> — die Messung auf die nächstgrößeren Tiers ausweiten und prüfen, ob LightRAGs Noise-Robustheit und der TCO-Vorteil von GraphRAG Local bei wachsender Korpusgröße Bestand haben.</li>
       <li><b>Standard-RAG-Präzision verbessern</b> — Chunk-Zuschnitt und Reranking-Fenster anpassen, um die schwache Document Precision (0.384) zu heben, ohne den führenden Passage Recall zu verlieren.</li>
       <li><b>GraphRAG Local vertiefen</b> — Granularitätslevel, lokale Suchparameter und Quellenbindung systematisch variieren, um die Faithfulness (0.490) weiter zu heben.</li>
       <li><b>GraphRAG-Global-Grounding disambiguieren</b> — Faithfulness gegen den Quelltext (statt gegen die Report-Synthese) messen und per Closed-Book-Probe trennen, ob das schwache Grounding parametrisches Leakage (H1) oder ein Mess-Artefakt abstraktiver Kontexte (H2) ist.</li>
       <li><b>LightRAG Passage-Coverage</b> — Untersuchen, ob niedriger Passage Recall bei stärker verrauschten Korpora die Antwortqualität gefährdet.</li>
-      <li><b>Kostenanalyse skalieren</b> — das auf XXS erhobene Ingestion-, Token- und Latenzprofil (Tab. 3–11) auf größere Tiers ausweiten und die Total-Cost-Kurven über echtem Noise validieren.</li>
+      <li><b>Kostenanalyse skalieren</b> — das auf XXS und XS erhobene Ingestion-, Token- und Latenzprofil (Tab. 3–15) auf größere Tiers ausweiten und die Total-Cost-Kurven bei steigender Korpusgröße validieren.</li>
     </ul>
   </div>
 </section>
@@ -946,13 +1076,9 @@
 <!-- ENTSCHEIDUNGSMATRIX -->
 <section class="block" id="entscheidung">
   <div class="wrap">
-    <div class="sec-no reveal">05 — Entscheidungsmatrix</div>
+    <div class="sec-no reveal">06 — Entscheidungsmatrix</div>
     <h2 class="reveal">Welche Architektur für welchen Fall?</h2>
-    <p class="read reveal">Die Messdaten zeigen keinen universellen Sieger, sondern klare Eignungsprofile. Die folgende Matrix übersetzt Qualität, Kosten und Latenz in eine Empfehlung pro Einsatzszenario &#8212; gültig für das hier getestete Factoid-QA auf biomedizinischen Volltexten und unter dem Vorbehalt des kleinen XXS-Splits.</p>
-    <div class="callout reveal">
-      <div class="clbl">Wichtig · Qualität ist Signal, nicht Endurteil</div>
-      <p>Die Kostenaussagen (Tokens, Latenz, Break-even) sind deterministisch gemessen und entscheidungsreif. Der <strong>Qualitätsteil</strong> wurde dagegen ausschließlich auf dem <strong>zero-noise XXS-Split</strong> erhoben &#8212; dem Regime, in dem graphbasierte Struktur ihren eigentlichen Mehrwert (verrauschtes, mehrhopfiges Retrieval) noch gar nicht ausspielen muss. Dieser Vorbehalt schneidet in beide Richtungen: Er kann GraphRAGs Qualitätsvorsprung ebenso überzeichnen wie unterzeichnen. Die Qualitäts-Rangfolge ist daher ein belastbares <strong>Signal für den nächsten Schritt</strong> (welche Kandidaten XS&#8211;M verdienen), kein abschließendes Architektur-Urteil.</p>
-    </div>
+    <p class="read reveal">Die Messdaten zeigen keinen universellen Sieger, sondern klare Eignungsprofile, die vom Noise-Regime abhängen. Die folgende Matrix übersetzt Qualität, Kosten und Latenz über beide Splits (clean XXS und verrauschtes XS) in eine Empfehlung pro Einsatzszenario &#8212; gültig für das hier getestete Factoid-QA auf biomedizinischen Volltexten.</p>
     <figure class="tbl-fig reveal">
       <div class="tbl-wrap">
       <table>
@@ -969,9 +1095,9 @@
         </tbody>
       </table>
       </div>
-      <figcaption class="tbl-cap"><span class="tnum">Tabelle 12</span><span>Entscheidungsmatrix · Empfehlung je Szenario auf Basis von Qualität (Tab. 2), Kosten (Tab. 11) und Latenz (Tab. 3)</span></figcaption>
+      <figcaption class="tbl-cap"><span class="tnum">Tabelle 16</span><span>Entscheidungsmatrix · Empfehlung je Szenario auf Basis von Qualität (Tab. 2), Kosten (Tab. 11) und Latenz (Tab. 3)</span></figcaption>
     </figure>
-    <p class="read reveal">Es gibt <strong>keinen Gesamtsieger</strong>, sondern einen echten Qualität-vs-Kosten-Trade. <strong>GraphRAG Local</strong> liefert die beste ausgewogene Antwortqualität, erkauft das aber mit teurer Indexierung und höheren Query-Kosten. <strong>LightRAG</strong> ist der Effizienz-Default für hohes Volumen, solange mittlere Qualität genügt. <strong>Standard-RAG</strong> bietet das beste Grounding und die billigste Indexierung für kleine, statische Korpora, bleibt aber query-teuer. <strong>GraphRAG Global</strong> ist der Nischenfall für corpusweites Sensemaking &#8212; hohe Correctness, aber nicht auditierbar. Die Leitfrage &#8212; ob graphgestützte Architekturen ihren Mehraufwand rechtfertigen &#8212; lässt sich damit beantworten: <em>auf der Qualitätsseite ja (GraphRAG Local führt), aber zu einem realen Kostenaufschlag gegenüber LightRAG; die Wahl hängt davon ab, ob das Anwendungsszenario Qualität oder Kosten priorisiert.</em></p>
+    <p class="read reveal">Es gibt <strong>keinen Gesamtsieger</strong> &#8212; die Wahl hängt am Noise-Regime und am Betriebsvolumen. Auf clean Korpora führen die Graph-Verfahren die Qualität an (GraphRAG Local am ausgewogensten); unter realistischem Distraktor-Anteil wird <strong>LightRAG</strong> zum robustesten Qualitätsführer, während <strong>Standard-RAG</strong> über beide Splits das beste Grounding und den günstigsten Sweet-Spot (~70 M TCO) hält. <strong>GraphRAG Local</strong> ist die günstigste TCO (~43 M), aber nur clean stark; <strong>GraphRAG Global</strong> ist auf beiden Achsen das schlechteste Setup (schwächstes Grounding, ~193 M TCO). Die Leitfrage &#8212; ob graphgestützte Architekturen ihren Mehraufwand rechtfertigen &#8212; lässt sich damit beantworten: <em>auf clean Daten ja, unter Noise nein. Der Graph-Qualitätsvorteil ist an saubere Retrieval-Bedingungen gebunden; sobald Distraktoren ins Spiel kommen, tragen das Reranker-Grounding der Baseline und LightRAGs Dual-Level-Retrieval.</em></p>
   </div>
 </section>
 
